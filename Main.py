@@ -111,7 +111,7 @@ class ScanViewerWindow(tk.Frame):
         label = tk.Label(label_frame, text="Scan Viewer", font=LARGE_FONT, anchor='center')
         label.pack(fill='x')
 
-        self.scan_scrollbar = ttk.Scale(self, orient="vertical", from_=1, to=len(scans_collective), command=self.next_img)
+        self.scan_scrollbar = ttk.Scale(self, orient="vertical", from_=1, to=len(scans_collective), command=self.next_scan)
         self.scan_scrollbar.pack(side="right")
 
         # Initialize current_img_num
@@ -131,10 +131,6 @@ class ScanViewerWindow(tk.Frame):
 
         self.canvas = FigureCanvasTkAgg(self.f, self.canvas_frame)
 
-        # Removes axis from graph
-        self.a.set_xticks([])
-        self.a.set_yticks([])
-
         # Draw canvas
         self.canvas.draw()
         self.canvas.get_tk_widget().pack()
@@ -152,13 +148,13 @@ class ScanViewerWindow(tk.Frame):
         toolbar.children['!button3'].pack_forget()
 
         # Back button at the bottom right
-        buttonHome = ttk.Button(self, text="Back", command=lambda: controller.display_window(MainMenu))
-        buttonHome.pack(side="bottom", anchor="se")
+        button_back_to_main_menu = ttk.Button(self, text="Back", command=lambda: controller.display_window(MainMenu))
+        button_back_to_main_menu.pack(side="bottom", anchor="se")
 
     def on_show(self):
-        self.winfo_toplevel().geometry("520x580")
+        self.winfo_toplevel().geometry("420x480")
 
-    def next_img(self, image_number):
+    def next_scan(self, image_number):
         image_number_int = int(float(image_number)) - 1
         img_arr = mpimg.imread(scans_collective[image_number_int])
         self.current_img_num = image_number_int
@@ -166,11 +162,6 @@ class ScanViewerWindow(tk.Frame):
         # Update the displayed image
         self.a.clear()
         self.a.imshow(img_arr, cmap='gray')
-
-        # Removes axis from graph
-        self.a.set_xticks([])
-        self.a.set_yticks([])
-
         self.canvas.draw()
 
 
