@@ -5,7 +5,12 @@ from matplotlib.figure import Figure
 import matplotlib.image as mpimg
 import tkinter as tk
 from tkinter import ttk
+from tkinter import font as tkFont
 import os
+import cv2 as cv
+import numpy as np
+import pydicom as PDCM
+from tkinter.filedialog import askdirectory
 
 
 LARGE_FONT = ("Calibri", 27)
@@ -69,21 +74,87 @@ class MainMenu(tk.Frame):
             self.grid_columnconfigure(col, weight=1)
 
     def on_show(self):
-        self.winfo_toplevel().geometry("400x200")
-
+        self.winfo_toplevel().geometry("400x180")
 
 class UploadScanWindow(tk.Frame):
-
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="Upload Scans", font=LARGE_FONT)
-        label.grid(row=0, column=1)
 
+        # Center the label
+        label = tk.Label(self, text="Upload Scans", font=LARGE_FONT)
+        label.pack(side="top")
+
+        # Center the "Process Scans" button
+        button_process_scans = ttk.Button(self, text="Upload Scans", command=self.process_scans)
+        button_process_scans.pack()
+
+        # Center the "Back" button
         button_back_to_start_menu = ttk.Button(self, text="Back", command=lambda: controller.display_window(MainMenu))
-        button_back_to_start_menu.grid(row=1, column=0)
+        button_back_to_start_menu.pack()
+
 
     def on_show(self):
-        self.winfo_toplevel().geometry("300x200")
+        self.winfo_toplevel().geometry("310x150")
+
+    def dicom_to_png(self, Path):
+        DCM_Img = PDCM.read_file(Path)
+
+        rows = DCM_Img.get(0x00280010).value  # Get number of rows from tag (0028, 0010)
+        cols = DCM_Img.get(0x00280011).value  # Get number of cols from tag (0028, 0011)
+
+        Instance_Number = int(DCM_Img.get(0x00200013).value)  # Get actual slice instance number from tag (0020, 0013)
+
+        Window_Center = int(DCM_Img.get(0x00281050).value)  # Get window center from tag (0028, 1050)
+        Window_Width = int(DCM_Img.get(0x00281051).value)  # Get window width from tag (0028, 1051)
+
+        Window_Max = int(Window_Center + Window_Width / 2)
+        Window_Min = int(Window_Center - Window_Width / 2)
+
+        if (DCM_Img.get(0x00281052) is None):
+            Rescale_Intercept = 0
+        else:
+            Rescale_Intercept = int(DCM_Img.get(0x00281052).value)
+
+        if (DCM_Img.get(0x00281053) is None):
+            Rescale_Slope = 1
+        else:
+            Rescale_Slope = int(DCM_Img.get(0x00281053).value)
+
+        New_Img = np.zeros((rows, cols), np.uint8)
+        Pixels = DCM_Img.pixel_array
+
+        for i in range(0, rows):
+            for j in range(0, cols):
+                Pix_Val = Pixels[i][j]
+                Rescale_Pix_Val = Pix_Val * Rescale_Slope + Rescale_Intercept
+
+                if (Rescale_Pix_Val > Window_Max):  # if intensity is greater than max window
+                    New_Img[i][j] = 255
+                elif (Rescale_Pix_Val < Window_Min):  # if intensity is less than min window
+                    New_Img[i][j] = 0
+                else:
+                    New_Img[i][j] = int(
+                        ((Rescale_Pix_Val - Window_Min) / (Window_Max - Window_Min)) * 255)  # Normalize the intensities
+
+        return New_Img, Instance_Number
+
+    def process_scans(self):
+        filename = askdirectory() # show an "Open" dialog box and return the path to the selected file
+
+        input_folder = filename
+        output_folder = 'png_scans'
+
+        input_scans_list = os.listdir(input_folder)
+        input_scans_list.sort()
+
+        if os.path.isdir(output_folder) is False:
+            os.mkdir(output_folder)
+
+        for i in range(0, len(input_scans_list)):
+            dicom_path = os.path.join(input_folder, input_scans_list[i])
+            output_scans, instance_number = self.dicom_to_png(dicom_path)
+            cv.imwrite(os.path.join(output_folder, f"{instance_number - 1:04d}.png"), output_scans)
+
 
 
 class AnnotateScanWindow(tk.Frame):
@@ -93,15 +164,14 @@ class AnnotateScanWindow(tk.Frame):
         label = tk.Label(self, text="Annotate Scan", font=LARGE_FONT)
         label.grid(row=0, column=0)
 
-        button_back_to_start_menu = ttk.Button(self, text="Back",command=lambda: controller.display_window(MainMenu))
-        button_back_to_start_menu.grid(row=1, column=0)
+        button_back_to_start_menu = ttk.Button(self, text="Back", command=lambda: controller.display_window(MainMenu))
+        button_back_to_start_menu.grid(row=1, column=1)
 
     def on_show(self):
-        self.winfo_toplevel().geometry("300x300")
+        self.winfo_toplevel().geometry("400x400")
     
 
 class ScanViewerWindow(tk.Frame):
-
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
@@ -111,63 +181,84 @@ class ScanViewerWindow(tk.Frame):
         label = tk.Label(label_frame, text="Scan Viewer", font=LARGE_FONT, anchor='center')
         label.pack(fill='x')
 
-        self.scan_scrollbar = ttk.Scale(self, orient="vertical", from_=1, to=len(scans_collective), command=self.next_scan)
-        self.scan_scrollbar.pack(side="right")
+        if scans_collective:
+            self.view_error = 0
+            self.scan_scrollbar = ttk.Scale(self, orient="vertical", from_=1, to=len(scans_collective), command=self.next_scan)
+            self.scan_scrollbar.pack(side="right")
 
-        # Initialize current_img_num
-        self.current_img_num = 0
+            self.current_scan_num = 0
 
-        img_arr = mpimg.imread(scans_collective[self.current_img_num])
+            scan_arr = mpimg.imread(scans_collective[self.current_scan_num])
 
-        # Create a figure and subplot for displaying images
-        self.f = Figure(figsize=(4, 4), dpi=100)
-        self.a = self.f.add_subplot(111)
+            # Get the actual size of the image
+            actual_height, actual_width = scan_arr.shape
 
-        self.a.imshow(img_arr, cmap='gray')
+            # Create a figure and subplot for displaying scans
+            self.f = Figure(figsize=(actual_width / 100, actual_height / 100), dpi=150)
+            self.a = self.f.add_subplot(111)
 
-        # Create a frame for the canvas
-        self.canvas_frame = tk.Frame(self)
-        self.canvas_frame.pack()
+            # Set aspect ratio to 'equal' to display the image in its actual size
+            self.a.imshow(scan_arr, cmap='gray', aspect='equal')
+            self.a.axis('off')
 
-        self.canvas = FigureCanvasTkAgg(self.f, self.canvas_frame)
+            # Create a frame for the canvas
+            self.canvas_frame = tk.Frame(self)
+            self.canvas_frame.pack() 
 
-        # Draw canvas
-        self.canvas.draw()
-        self.canvas.get_tk_widget().pack()
+            self.canvas = FigureCanvasTkAgg(self.f, self.canvas_frame)
 
-        # Create a frame for the toolbar
-        toolbar_frame = tk.Frame(self)
-        toolbar_frame.pack(side="left")
+            # Draw canvas
+            self.canvas.draw()
+            self.canvas.get_tk_widget().pack()
 
-        toolbar = NavigationToolbar2Tk(self.canvas, toolbar_frame)
-        toolbar.update()
+            # Create a frame for the toolbar
+            toolbar_frame = tk.Frame(self)
+            toolbar_frame.pack(side="left")
 
-        # Hide unwanted buttons
-        toolbar.children['!button5'].pack_forget()
-        toolbar.children['!button2'].pack_forget()
-        toolbar.children['!button3'].pack_forget()
+            toolbar = NavigationToolbar2Tk(self.canvas, toolbar_frame)
+            toolbar.update()
 
-        # Back button at the bottom right
-        button_back_to_main_menu = ttk.Button(self, text="Back", command=lambda: controller.display_window(MainMenu))
-        button_back_to_main_menu.pack(side="bottom", anchor="se")
+            # Hide unwanted buttons
+            toolbar.children['!button5'].pack_forget()
+            toolbar.children['!button2'].pack_forget()
+            toolbar.children['!button3'].pack_forget()
+
+            # Back button at the bottom right
+            button_back_to_main_menu = ttk.Button(self, text="Back", command=lambda: controller.display_window(MainMenu))
+            button_back_to_main_menu.pack(side="bottom", anchor="se")
+
+        else:
+            self.view_error = 1
+            # Display a message if no scans are available
+            no_scans_label = tk.Label(self, text="No scans available.", font=tkFont.Font(family="Calibri", size=24),)
+            no_scans_label.pack()
+
+            # Back button at the bottom right
+            button_back_to_main_menu = ttk.Button(self, text="Back", command=lambda: controller.display_window(MainMenu))
+            button_back_to_main_menu.pack()
 
     def on_show(self):
-        self.winfo_toplevel().geometry("420x480")
+        if self.view_error == 0:
+            canvas_width = (self.f.get_figwidth() * self.f.get_dpi()) + 20
+            canvas_height = (self.f.get_figheight() * self.f.get_dpi()) + 80
 
-    def next_scan(self, image_number):
-        image_number_int = int(float(image_number)) - 1
-        img_arr = mpimg.imread(scans_collective[image_number_int])
-        self.current_img_num = image_number_int
+            self.winfo_toplevel().geometry(f"{int(canvas_width)}x{int(canvas_height)}")
+        else:
+            self.winfo_toplevel().geometry("320x200")
 
-        # Update the displayed image
+    def next_scan(self, scan_number):
+        scan_number_int = int(float(scan_number)) - 1
+        scan_arr = mpimg.imread(scans_collective[scan_number_int])
+        self.current_scan_num = scan_number_int
+
+        # Update the displayed scan
         self.a.clear()
-        self.a.imshow(img_arr, cmap='gray')
+        self.a.imshow(scan_arr, cmap='gray', aspect='equal')
+        self.a.axis('off')
         self.canvas.draw()
 
-
-
 if __name__ == "__main__":
-    scans_dir = 'png_images'
+    scans_dir = 'png_scans'
     scans_list = os.listdir(scans_dir)
     scans_list.sort()
     scans_collective = []
@@ -176,7 +267,6 @@ if __name__ == "__main__":
     for i in range(0, len(scans_list)):
         scan_name = (f'{scans_dir}/{scans_list[i]}')
         scans_collective.append(scan_name)
-
 
 app = Main()
 app.mainloop()
