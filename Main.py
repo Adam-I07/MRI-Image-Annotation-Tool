@@ -43,7 +43,7 @@ class FixedSizeWindow:
         self.display_scan_button.grid(row=0, column=2, padx=(0,20))
         self.delete_scan_button = ttk.Button(self.menu_frame, text="Delete Scans")
         self.delete_scan_button.grid(row=0, column=3, padx=(0,20))
-        self.exit_button = ttk.Button(self.menu_frame, text="Exit", command=lambda:self.exit_application)
+        self.exit_button = ttk.Button(self.menu_frame, text="Exit", command=self.exit_application)
         self.exit_button.grid(row=0, column=4, padx=(0,10))
 
         # Viewer Widgets and Buttons
@@ -61,6 +61,7 @@ class FixedSizeWindow:
     # Code to allows the user to exit from the application
     def exit_application(self):
         self.master.destroy()
+
 
     #Following code is the start for the Scan Viewer to be displayed on the Main Menu
     def load_scan_viewer(self):
@@ -105,6 +106,9 @@ class FixedSizeWindow:
             self.a.imshow(scan_arr, cmap='gray', aspect='equal')
             self.a.axis('off')
 
+            # Remove extra whitespace around the image
+            self.f.subplots_adjust(left=0, right=1, top=1, bottom=0)
+
             # Create a frame for the canvas
             self.canvas_frame = tk.Frame(self.viewer_frame)
             self.canvas_frame.grid(row=2, column=0, padx=(10, 0))
@@ -138,7 +142,7 @@ class FixedSizeWindow:
 
             # Create a label to display the coordinates
             self.coordinates_label = ttk.Label(self.viewer_frame, text="Coordinates: (0, 0)", font=("Calibri", 12))
-            self.coordinates_label.grid(row=3, column=0, padx=(0, 400))
+            self.coordinates_label.grid(row=3, column=0, padx=(300, 0))
 
             # Bind mouse motion event to update coordinates label
             self.canvas.mpl_connect('motion_notify_event', self.on_mouse_motion)
@@ -184,34 +188,54 @@ class FixedSizeWindow:
         # Redraw the canvas
         self.canvas.draw()
 
+    def on_mouse_scroll(self, event):
+        # Check if the event was a scroll event
+        if event.name == 'scroll_event':
+            # Calculate the zoom center coordinates based on the mouse pointer location
+            x, y = event.x, event.y
+
+            # Zoom in based on the direction of the scroll
+            if event.step > 0:
+                self.zoom_source = "scroll"
+                self.zoom(0.8, x, y, mouse_zoom=True)
+
     def zoom_to_rectangle(self):
         # Call the zoom_to_rect method from the existing toolbar
         self.toolbar.zoom()
-        
         # Update the displayed scan
         self.a.clear()
         scan_arr = mpimg.imread(self.scans_collective[self.current_scan_num])
         self.a.imshow(scan_arr, cmap='gray', aspect='equal')
         self.a.axis('off')
-
+        # Remove extra whitespace around the image
+        self.f.subplots_adjust(left=0, right=1, top=1, bottom=0)
         # Redraw the canvas
         self.canvas.draw()
 
     def on_mouse_motion(self, event):
-        # Check if the event is a motion event and if xdata and ydata are not None
-        if event.name == 'motion_notify_event' and event.xdata is not None and event.ydata is not None:
-            # Get the x and y coordinates of the mouse pointer
-            x, y = int(event.xdata), int(event.ydata)
-        else:
-            # Set coordinates to (0, 0) when outside the image
-            x, y = 0, 0
+        # Check if the event is a motion event
+        if event.name == 'motion_notify_event':
+            if event.xdata is not None and event.ydata is not None:
+                # Get the x and y coordinates of the mouse pointer
+                x, y = int(event.xdata), int(event.ydata)
+            else:
+                # Set coordinates to (0, 0) when outside the image
+                x, y = 0, 0
 
-        # Update the coordinates label
-        self.coordinates_label.config(text=f"Coordinates: ({x}, {y})")
-        pass
+            # Update the coordinates label
+            self.coordinates_label.config(text=f"Coordinates: ({x}, {y})")
 
+    
     def zoom(self, scale, x, y, mouse_zoom=True):
         if mouse_zoom:
+            # Get the current x and y coordinates of the mouse pointer
+            pointer_x, pointer_y = self.canvas.get_tk_widget().winfo_pointerxy()
+
+            # Convert the screen coordinates to figure coordinates
+            x, y = pointer_x - self.canvas.get_tk_widget().winfo_rootx(), pointer_y - self.canvas.get_tk_widget().winfo_rooty()
+            inv = self.a.transData.inverted()
+            x, y = inv.transform([x, y])
+
             # Calculate the new axis limits after zooming
             new_xlim = [coord * scale - (scale - 1) * x for coord in self.a.get_xlim()]
             new_ylim = [coord * scale - (scale - 1) * y for coord in self.a.get_ylim()]
