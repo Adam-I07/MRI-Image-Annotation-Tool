@@ -12,6 +12,7 @@ import cv2 as cv
 import numpy as np
 import pydicom as PDCM
 from tkinter.filedialog import askdirectory
+import shutil
 
 
 class FixedSizeWindow:
@@ -41,7 +42,7 @@ class FixedSizeWindow:
         self.upload_scan_button.grid(row=0, column=1, padx=(140,20))
         self.display_scan_button = ttk.Button(self.menu_frame, text="Display Scans", command=self.display_scans)
         self.display_scan_button.grid(row=0, column=2, padx=(0,20))
-        self.delete_scan_button = ttk.Button(self.menu_frame, text="Delete Scans")
+        self.delete_scan_button = ttk.Button(self.menu_frame, text="Delete Scans", command=self.delete_scans)
         self.delete_scan_button.grid(row=0, column=3, padx=(0,20))
         self.exit_button = ttk.Button(self.menu_frame, text="Exit", command=self.exit_application)
         self.exit_button.grid(row=0, column=4, padx=(0,10))
@@ -270,7 +271,6 @@ class FixedSizeWindow:
         self.canvas.draw()
     #End of Main Menu Display Viewer Code
 
-
     #Following code is the start for the Display Scans
     def display_scans(self):
         self.display_scans_window = tk.Tk()
@@ -299,9 +299,7 @@ class FixedSizeWindow:
         self.display_scans_window.mainloop()
 
     def display_scan_open(self, scan_folder_name):
-        if len(scan_folder_name) == 0:
-            messagebox.showerror('Error', 'Select a folder please')
-        else:
+        if scan_folder_name:
             self.scans_collective.clear()
             scans_dir = "saved_scans" + "/" + scan_folder_name
             scans_list = os.listdir(scans_dir)
@@ -318,7 +316,8 @@ class FixedSizeWindow:
                 self.display_scans_window.destroy()
                 self.load_scan_viewer()
                 messagebox.showinfo('Success', 'Scans have successully opened for viewing')
-
+        else:
+            messagebox.showerror('Error', 'Select a scan set please')
 
     #End of Display Scans code
 
@@ -426,6 +425,52 @@ class FixedSizeWindow:
         return New_Img, Instance_Number
     
     #Uploading Scans Code Ending
+
+    #Delete Scans Code Starting
+
+        #Delete Scans Code Start
+    def delete_scans(self):
+        self.delete_scan_window = tk.Tk()
+        self.delete_scan_window.title('Delete Scan')
+        self.delete_scan_window.geometry('430x130')
+        self.delete_scan_window.resizable(0, 0)
+
+        current_folders = []
+        save_scan_folder = "saved_scans"
+        get_folder_named = os.listdir(save_scan_folder)
+        current_folders = get_folder_named
+        if '.DS_Store' in current_folders:
+            current_folders.remove('.DS_Store') 
+
+        self.delete_scan_window_name_label = ttk.Label(self.delete_scan_window, text="Delete Scans", font=("Caslon", 22))
+        self.delete_scan_window_name_label.grid(row=0, column=0, padx=(140,0), pady=10)
+        self.select_scan_set_label = ttk.Label(self.delete_scan_window, text="Select a scan set to delete:", font=("Calibri", 12))
+        self.select_scan_set_label.grid(row=1, column=0, padx=(10,0), sticky='w')
+        self.select_scan_set_folder_combobox = ttk.Combobox(self.delete_scan_window, font=('Arial', 12, 'bold'), width=40, values=current_folders)
+        self.select_scan_set_folder_combobox.grid(row=2, column=0, padx=(10,0), sticky='w')
+        self.select_scan_set_folder_combobox['state'] = 'readonly'
+        self.delete_scan_set_button = ttk.Button(self.delete_scan_window, text="Delete", command=lambda: self.delete_scan_file(self.select_scan_set_folder_combobox.get()))
+        self.delete_scan_set_button.grid(row=2, column=1)
+
+        self.delete_scan_window.mainloop()
+
+    def delete_scan_file(self, scan_folder_to_delete):
+        if scan_folder_to_delete:
+            result = messagebox.askquestion("Confirmation", f"Are you sure you would like to delete {scan_folder_to_delete}?")
+            if result == 'yes':
+                save_scan_folder = "saved_scans"
+                file_path_to_delete = os.path.join(save_scan_folder, scan_folder_to_delete)
+                try:
+                    shutil.rmtree(file_path_to_delete)
+                    messagebox.showinfo("Deleted", f"{scan_folder_to_delete} has been successfully deleted")
+                    self.delete_scan_window.destroy()
+                except OSError as e:
+                    print(f"Error deleting file {scan_folder_to_delete}: {e}")
+        else:
+            messagebox.showerror("Error", "Select a scan set to delete.")
+    #Delete Scans Code End
+
+    #Delete Scans Code Ending
 
 
  
