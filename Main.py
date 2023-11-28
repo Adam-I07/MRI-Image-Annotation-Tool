@@ -463,10 +463,50 @@ class MRIAnnotationTool:
                 save_scan_folder = "saved_scans"
                 file_path_to_delete = os.path.join(save_scan_folder, scan_folder_to_delete)
                 try:
-                    shutil.rmtree(file_path_to_delete)
-                    messagebox.showinfo("Deleted", f"{scan_folder_to_delete} has been successfully deleted")
+                    # Check if the deleted scan set is currently open
                     if scan_folder_to_delete == self.current_opened_scan:
                         self.scans_collective.clear()
+
+                        # Destroy existing widgets in the viewer
+                        if hasattr(self, 'canvas_frame'):
+                            self.canvas_frame.destroy()
+                            del self.canvas_frame
+
+                        if hasattr(self, 'canvas'):
+                            self.canvas.get_tk_widget().destroy()
+                            del self.canvas
+
+                        if hasattr(self, 'toolbar_frame'):
+                            self.toolbar_frame.destroy()
+                            del self.toolbar_frame
+
+                        if hasattr(self, 'scan_scrollbar'):
+                            self.scan_scrollbar.destroy()
+                            del self.scan_scrollbar
+
+                        if hasattr(self, 'reset_view_button'):
+                            self.reset_view_button.destroy()
+                            del self.reset_view_button
+
+                        if hasattr(self, 'zoom_button'):
+                            self.zoom_button.destroy()
+                            del self.zoom_button
+
+                        if hasattr(self, 'coordinates_label'):
+                            self.coordinates_label.destroy()
+                            del self.coordinates_label
+
+                        if hasattr(self, 'toolbar'):
+                            self.toolbar.destroy()
+                            del self.toolbar
+
+                    shutil.rmtree(file_path_to_delete)
+                    messagebox.showinfo("Deleted", f"{scan_folder_to_delete} has been successfully deleted")
+
+                    # Update the viewer if the deleted scan set is currently open
+                    if scan_folder_to_delete == self.current_opened_scan:
+                        self.load_scan_viewer()
+
                     self.delete_scan_window.destroy()
                 except OSError as e:
                     print(f"Error deleting file {scan_folder_to_delete}: {e}")
