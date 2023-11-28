@@ -15,7 +15,7 @@ from tkinter.filedialog import askdirectory
 import shutil
 
 
-class FixedSizeWindow:
+class MRIAnnotationTool:
     def __init__(self, master):
         self.master = master
         self.master.title("MRI Annotation Tool")
@@ -112,7 +112,7 @@ class FixedSizeWindow:
 
             # Create a frame for the canvas
             self.canvas_frame = tk.Frame(self.viewer_frame)
-            self.canvas_frame.grid(row=2, column=0, padx=(10, 0))
+            self.canvas_frame.grid(row=2, column=0, padx=(10, 0), pady=(10, 0))
 
             self.canvas = FigureCanvasTkAgg(self.f, self.canvas_frame)
 
@@ -208,11 +208,9 @@ class FixedSizeWindow:
         scan_arr = mpimg.imread(self.scans_collective[self.current_scan_num])
         self.a.imshow(scan_arr, cmap='gray', aspect='equal')
         self.a.axis('off')
-        # Remove extra whitespace around the image
-        self.f.subplots_adjust(left=0, right=1, top=1, bottom=0)
         # Redraw the canvas
         self.canvas.draw()
-
+        
     def on_mouse_motion(self, event):
         # Check if the event is a motion event
         if event.name == 'motion_notify_event':
@@ -226,7 +224,6 @@ class FixedSizeWindow:
             # Update the coordinates label
             self.coordinates_label.config(text=f"Coordinates: ({x}, {y})")
 
-    
     def zoom(self, scale, x, y, mouse_zoom=True):
         if mouse_zoom:
             # Get the current x and y coordinates of the mouse pointer
@@ -275,7 +272,7 @@ class FixedSizeWindow:
     def display_scans(self):
         self.display_scans_window = tk.Tk()
         self.display_scans_window.title('Display Scan')
-        self.display_scans_window.geometry('500x130')
+        self.display_scans_window.geometry('430x130')
         self.display_scans_window.resizable(0, 0)
 
         current_folders = []
@@ -313,6 +310,12 @@ class FixedSizeWindow:
             if not self.scans_collective:
                 messagebox.showwarning('Warning', 'No scans found in the selected folder.')
             else:
+                # Check if coordinates_label exists before updating
+                if hasattr(self, 'coordinates_label') and self.coordinates_label:
+                    # Clear previous coordinates when loading a new set of scans
+                    self.coordinates_label.config(text="Coordinates: (0, 0)")
+
+                self.current_opened_scan = scan_folder_name
                 self.display_scans_window.destroy()
                 self.load_scan_viewer()
                 messagebox.showinfo('Success', 'Scans have successully opened for viewing')
@@ -428,7 +431,6 @@ class FixedSizeWindow:
 
     #Delete Scans Code Starting
 
-        #Delete Scans Code Start
     def delete_scans(self):
         self.delete_scan_window = tk.Tk()
         self.delete_scan_window.title('Delete Scan')
@@ -463,13 +465,14 @@ class FixedSizeWindow:
                 try:
                     shutil.rmtree(file_path_to_delete)
                     messagebox.showinfo("Deleted", f"{scan_folder_to_delete} has been successfully deleted")
+                    if scan_folder_to_delete == self.current_opened_scan:
+                        self.scans_collective.clear()
                     self.delete_scan_window.destroy()
                 except OSError as e:
                     print(f"Error deleting file {scan_folder_to_delete}: {e}")
         else:
             messagebox.showerror("Error", "Select a scan set to delete.")
-    #Delete Scans Code End
-
+    
     #Delete Scans Code Ending
 
 
@@ -477,5 +480,5 @@ class FixedSizeWindow:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = FixedSizeWindow(root)
+    app = MRIAnnotationTool(root)
     root.mainloop()
