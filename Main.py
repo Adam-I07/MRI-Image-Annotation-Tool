@@ -13,6 +13,7 @@ import numpy as np
 import pydicom as PDCM
 from tkinter.filedialog import askdirectory
 import shutil
+from tkinter.colorchooser import askcolor
 
 
 class MRIAnnotationTool:
@@ -21,6 +22,23 @@ class MRIAnnotationTool:
         self.master.title("MRI Annotation Tool")
         self.master.geometry("1000x700")
         self.master.resizable(0, 0)
+
+        # Add a variable to track the pen drawing state
+        self.drawing = False
+        self.prev_x = None
+        self.prev_y = None
+        self.pen_active = False
+        self.zoom_active = False
+        self.undo_active = False
+        self.scroll_zoom_active = False
+        self.drawn_lines = []
+        self.all_lines = []
+        self.active_button = None
+        self.current_lines = []
+
+        # Add canvas width and height attributes
+        self.canvas_width = 0
+        self.canvas_height = 0
 
         # Frame Creation
         self.menu_frame = ttk.Frame(master, height=100, borderwidth=3, relief='sunken')
@@ -63,8 +81,8 @@ class MRIAnnotationTool:
     def exit_application(self):
         self.master.destroy()
 
-
     #Following code is the start for the Scan Viewer to be displayed on the Main Menu
+            #Following code is the start for the Scan Viewer to be displayed on the Main Menu
     def load_scan_viewer(self):
         self.original_xlim = None
         self.original_ylim = None
@@ -83,9 +101,9 @@ class MRIAnnotationTool:
             self.toolbar.destroy()
             del self.toolbar
 
-        if hasattr(self, 'scan_scrollbar'):
-            self.scan_scrollbar.destroy()
-            del self.scan_scrollbar
+        if hasattr(self, 'scan_scale'):
+            self.scan_scale.destroy()
+            del self.scan_scale
 
         if self.scans_collective:
             self.current_scan_num = 0
@@ -112,9 +130,17 @@ class MRIAnnotationTool:
 
             # Create a frame for the canvas
             self.canvas_frame = tk.Frame(self.viewer_frame)
-            self.canvas_frame.grid(row=2, column=0, padx=(10, 0), pady=(10, 0))
+            self.canvas_frame.grid(row=1, column=0, padx=(50, 0), pady=(10, 0))
 
             self.canvas = FigureCanvasTkAgg(self.f, self.canvas_frame)
+
+            # Set canvas width and height
+            self.canvas_width, self.canvas_height = self.f.get_size_inches() * self.f.dpi
+
+             # Bind mouse button press, release, and motion events for drawing
+            self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
+            self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+            self.canvas.mpl_connect('motion_notify_event', self.draw_on_canvas)
 
             # Draw canvas
             self.canvas.draw()
@@ -124,26 +150,53 @@ class MRIAnnotationTool:
             self.toolbar_home = self.reset_zoom
 
             # Bind mouse scroll event to zoom
-            self.canvas.mpl_connect('scroll_event', self.on_mouse_scroll) if hasattr(self, 'on_mouse_scroll') else None
+            #self.canvas.mpl_connect('scroll_event', self.on_mouse_scroll) if hasattr(self, 'on_mouse_scroll') else None
 
             # Create a frame for the toolbar
             self.toolbar_frame = ttk.Frame(self.viewer_frame)
 
-            padx_for_scrollbar = actual_width + (actual_width/2)  # Adjust as needed
-            self.scan_scrollbar = ttk.Scale(self.viewer_frame, orient="vertical", from_=1, to=len(self.scans_collective), command=self.next_scan)
-            self.scan_scrollbar.grid(row=2, column=0, padx=(padx_for_scrollbar,0))
+            self.scan_scale = ttk.Scale(self.viewer_frame, orient="vertical", from_=1, to=len(self.scans_collective), command=self.next_scan)
+            self.scan_scale.grid(row=1, column=1, padx=(0,0))
 
-
+            
             self.reset_view_button = ttk.Button(self.viewer_frame, text="Reset", command=self.reset_view)
-            self.reset_view_button.grid(row=3, column=0, padx=(0, 200))  # Adjusted the padx here
-
-            # Add a zoom button with rectangle functionality
-            self.zoom_button = ttk.Button(self.viewer_frame, text="Zoom", command=self.zoom_to_rectangle)
-            self.zoom_button.grid(row=3, column=0)
-
-            # Create a label to display the coordinates
+            self.reset_view_button.grid(row=2, column=0, padx=(0, 50))
+            self.zoom_button = ttk.Button(self.viewer_frame, text="Zoom", command=self.activate_zoom)
+            self.zoom_button.grid(row=2, column=0, padx=(150,0))
+            self.scroll_zoom_button = ttk.Button(self.viewer_frame, text="Scroll Zoom", command=self.activate_scroll_zoom)
+            self.scroll_zoom_button.grid(row=2, column=0, padx=(370,0))
             self.coordinates_label = ttk.Label(self.viewer_frame, text="Coordinates: (0, 0)", font=("Calibri", 12))
-            self.coordinates_label.grid(row=3, column=0, padx=(300, 0))
+            self.coordinates_label.grid(row=2, column=0, padx=(0, 310))
+
+            self.zoom_status_label = ttk.Label(self.viewer_frame, text="     Zoom\nDeactivated", font=("Calibri", 12), foreground="red")
+            self.zoom_status_label.grid(row=3, column=0, padx=(150, 0))
+            self.scroll_zoom_status_label = ttk.Label(self.viewer_frame, text="Scroll Zoom\nDeactivated", font=("Calibri", 12), foreground="red")
+            self.scroll_zoom_status_label.grid(row=3, column=0, padx=(370, 0))
+
+            # Annotation Tools Widgets
+            self.chosencolour = 'black'
+            self.line_width = 1  # Default line width
+
+            self.annotation_tool_label = ttk.Label(self.viewer_frame, text="Annotation\n     Tools:", font=("Calibri", 20))
+            self.annotation_tool_label.grid(row=1, column=0, padx=(2, 540), pady=(0,370))
+            self.pen_button = ttk.Button(self.viewer_frame, text="Pen", command=self.activate_pen)
+            self.pen_button.grid(row=1, column=0, padx=(2, 540), pady=(0,300))
+            self.colour_button = ttk.Button(self.viewer_frame, text="Colour", command=self.choose_colour)
+            self.colour_button.grid(row=1, column=0, padx=(2, 540), pady=(0,250))
+            self.undo_button = ttk.Button(self.viewer_frame, text="Undo", command=self.activate_undo)
+            self.undo_button.grid(row=1, column=0, padx=(2, 540), pady=(0,200))
+            self.choose_pen_size_label = ttk.Label(self.viewer_frame, text="Pen Size:", font=("Calibri", 12))
+            self.choose_pen_size_label.grid(row=1, column=0, padx=(2, 540), pady=(0,150))
+            self.choose_pen_size_scale = tk.Scale(self.viewer_frame, from_=1, to=10, orient='horizontal', command=self.update_pen_size, showvalue=False)
+            self.choose_pen_size_scale.set(self.line_width)
+            self.choose_pen_size_scale.grid(row=1, column=0, padx=(2, 540), pady=(0,120))     
+
+            self.annotation_tool_status_label = ttk.Label(self.viewer_frame, text="Tools Status:", font=("Calibri", 17))
+            self.annotation_tool_status_label.grid(row=1, column=0, padx=(2, 540), pady=(0,50))
+            self.undo_status_label = ttk.Label(self.viewer_frame, text="Undo Deactivated", font=("Calibri", 12), foreground="red")
+            self.undo_status_label.grid(row=1, column=0, padx=(2, 540), pady=(0,10))
+            self.pen_activated_label = ttk.Label(self.viewer_frame, text="Pen Deactivated", font=("Calibri", 12), foreground="red")
+            self.pen_activated_label.grid(row=1, column=0, padx=(2, 540), pady=(20,0))                 
 
             # Bind mouse motion event to update coordinates label
             self.canvas.mpl_connect('motion_notify_event', self.on_mouse_motion)
@@ -188,6 +241,115 @@ class MRIAnnotationTool:
 
         # Redraw the canvas
         self.canvas.draw()
+    
+    def activate_scroll_zoom(self):
+        # Toggle the scroll_zoom_active state
+        self.scroll_zoom_active = not self.scroll_zoom_active
+
+        # Check the scroll zoom activation state and update the button and label accordingly
+        if self.scroll_zoom_active:
+            self.active_button = self.scroll_zoom_button
+            self.scroll_zoom_status_label.config(text="Scroll Zoom Active", foreground="green")
+            # Bind mouse scroll event to scroll zoom
+            self.scroll_zoom_callback_id = self.canvas.mpl_connect('scroll_event', self.on_mouse_scroll)
+        else:
+            self.active_button = None
+            self.scroll_zoom_status_label.config(text="Scroll Zoom Deactivated", foreground="red")
+            # Disconnect the scroll event for scroll zoom
+            if hasattr(self, 'scroll_zoom_callback_id') and self.scroll_zoom_callback_id:
+                self.canvas.mpl_disconnect(self.scroll_zoom_callback_id)
+    
+    def activate_zoom(self):
+        if self.pen_active:
+            messagebox.showinfo('Warning', 'Please deactivate pen before activating zoom.')
+            return
+        
+        if self.undo_active:
+            messagebox.showinfo('Warning', 'Please deactivate undo before activating zoom.')
+            return
+
+        # Toggle the zoom_active state
+        self.zoom_active = not self.zoom_active
+
+        # Disable drawing when the zoom button is clicked
+        self.drawing = False
+        self.pen_active = False
+        self.pen_activated_label.configure(text="Pen deactivated", foreground="red")
+
+        # Check the zoom activation state and update the button and label accordingly
+        if self.zoom_active:
+            self.active_button = self.zoom_button
+            self.zoom_status_label.config(text="Zoom Active", foreground="green")
+        else:
+            self.active_button = None
+            self.zoom_status_label.config(text="     Zoom\nDeactivated", foreground="red")
+
+        # Trigger the "Zoom to Rectangle" functionality directly
+        self.toolbar.zoom()
+
+    def activate_undo(self):
+        if self.pen_active:
+            messagebox.showinfo('Warning', 'Please deactivate pen before activating undo.')
+            return
+    
+        if self.zoom_active:
+            messagebox.showinfo('Warning', 'Please deactivate zoom before activating undo.')
+            return
+
+        # Toggle the undo_active state
+        self.undo_active = not self.undo_active
+
+       # Check the undo activation state and update the button and label accordingly
+        if self.undo_active:
+            self.active_button = self.undo_button
+            self.undo_status_label.config(text="Undo Active", foreground="green")
+
+            # Connect the delete_selected_line method to the mouse click event
+            self.undo_callback_id = self.canvas.mpl_connect('button_press_event', self.delete_selected_line)
+        else:
+            self.active_button = None
+            self.undo_status_label.config(text="Undo Deactivated", foreground="red")
+
+            # Disconnect the delete_selected_line method from the mouse click event
+            if hasattr(self, 'undo_callback_id') and self.undo_callback_id:
+                self.canvas.mpl_disconnect(self.undo_callback_id)
+
+
+    def activate_pen(self):
+        if self.zoom_active:
+            messagebox.showinfo('Warning', 'Please deactivate zoom before activating pen.')
+            return
+        
+        if self.undo_active:
+            messagebox.showinfo('Warning', 'Please deactivate undo before activating pen.')
+            return
+
+        self.active_button = self.pen_button
+        self.drawing = True
+        self.pen_active = not self.pen_active
+        self.pen_activated_label.configure(text="Pen active", foreground="green") if self.pen_active else self.pen_activated_label.configure(text="Pen Deactivated", foreground="red")
+
+        # Update the button appearance based on the activation state
+        if self.pen_active:
+            self.active_button = self.pen_button
+            self.drawing = True
+            self.pen_activated_label.configure(text="Pen active", foreground="green")
+        else:
+            self.active_button = None
+            self.drawing = False
+            self.pen_activated_label.configure(text="Pen Deactivated", foreground="red")
+
+        # Toggle pen activation state
+        if self.pen_active:
+            self.drawing = True
+        else:
+            self.drawing = False
+            self.prev_x = None
+            self.prev_y = None
+
+            # Add the current list of lines to the list of all lines
+            if self.current_lines:
+                self.all_lines.append(self.current_lines)
 
     def on_mouse_scroll(self, event):
         # Check if the event was a scroll event
@@ -199,17 +361,6 @@ class MRIAnnotationTool:
             if event.step > 0:
                 self.zoom_source = "scroll"
                 self.zoom(0.8, x, y, mouse_zoom=True)
-
-    def zoom_to_rectangle(self):
-        # Call the zoom_to_rect method from the existing toolbar
-        self.toolbar.zoom()
-        # Update the displayed scan
-        self.a.clear()
-        scan_arr = mpimg.imread(self.scans_collective[self.current_scan_num])
-        self.a.imshow(scan_arr, cmap='gray', aspect='equal')
-        self.a.axis('off')
-        # Redraw the canvas
-        self.canvas.draw()
         
     def on_mouse_motion(self, event):
         # Check if the event is a motion event
@@ -266,6 +417,92 @@ class MRIAnnotationTool:
 
         # Redraw the canvas
         self.canvas.draw()
+
+
+    def choose_colour(self):
+        self.eraser_on = False
+        self.chosencolour = askcolor(color=self.chosencolour)[1]
+
+    def on_mouse_press(self, event):
+        if event.name == 'button_press_event':
+            if self.active_button == self.pen_button and event.button == 1:
+                self.drawing = True
+                # Start a new list for the current sequence of lines
+                self.current_lines = []
+            elif self.active_button == self.zoom_button and event.button == 1:
+                self.zoom_source = "button"
+            elif self.active_button == self.undo_button and event.button == 1:
+                # Trigger the undo functionality when the undo button is pressed
+                self.undo_last_line()
+
+    def on_mouse_release(self, event):
+        if event.name == 'button_release_event':
+            if event.button == 1:
+                self.drawing = False
+                self.prev_x = None
+                self.prev_y = None
+
+                # Add the current list of lines to the list of all lines
+                if self.current_lines:
+                    self.all_lines.append(self.current_lines)
+    
+    def draw_on_canvas(self, event):
+        if event.name == 'motion_notify_event' and self.drawing:
+            if event.xdata is not None and event.ydata is not None:
+                x, y = int(event.xdata), int(event.ydata)
+            else:
+                x, y = 0, 0
+
+            # Check if the coordinates are within the valid range
+            if 0 <= x < self.canvas_width and 0 <= y < self.canvas_height:
+                if event.button == 1 and self.prev_x is not None and self.prev_y is not None:
+                    # Check if the line is entirely within the canvas boundaries
+                    if 0 <= self.prev_x < self.canvas_width and 0 <= self.prev_y < self.canvas_height:
+                        # Draw a line and add it to the current list of lines
+                        line = self.a.plot([self.prev_x, x], [self.prev_y, y], linewidth=self.line_width, color=self.chosencolour)[0]
+                        self.current_lines.append(line)
+
+                self.canvas.draw()
+                self.prev_x, self.prev_y = x, y
+
+    def update_pen_size(self, value):
+        # Update the line width when the scale is changed
+        self.line_width = int(value)
+
+    def undo_last_line(self):
+       # Check if there are any sequences of lines
+        if self.all_lines:
+            # Set the callback for the mouse click event to handle line deletion
+            self.canvas.mpl_connect('button_press_event', self.delete_selected_line)
+
+    def delete_selected_line(self, event):
+        if event.name == 'button_press_event' and event.button == 1:
+                    # Check if the figure exists
+                    if hasattr(self, 'f') and self.f:
+                        # Check if there are any sequences of lines
+                        if self.all_lines:
+                            # Iterate over all lines and check if the click is on any line
+                            for sequence in self.all_lines:
+                                for line in sequence:
+                                    # Check if the figure is set before calling contains
+                                    if hasattr(line, 'figure') and line.figure:
+                                        if line.contains(event)[0]:
+                                            # Remove all lines from the selected sequence
+                                            for l in sequence:
+                                                # Check if the line is still in the list before removing
+                                                if l in self.a.lines:
+                                                    l.remove()
+                                            self.canvas.draw()
+
+                                            # Remove the selected sequence from the list of all lines
+                                            self.all_lines.remove(sequence)
+                                            return
+
+    def clear_drawn_lines(self):
+        for line in self.drawn_lines:
+            line.remove()
+        self.drawn_lines.clear()
+    
     #End of Main Menu Display Viewer Code
 
     #Following code is the start for the Display Scans
@@ -394,7 +631,7 @@ class MRIAnnotationTool:
         Instance_Number = int(DCM_Img.get(0x00200013).value)  # Get actual slice instance number from tag (0020, 0013)
 
         Window_Center = int(DCM_Img.get(0x00281050).value)  # Get window center from tag (0028, 1050)
-        Window_Width = int(DCM_Img.get(0x00281051).value)  # Get window width from tag (0028, 1051)
+        Window_Width = int(DCM_Img.get(0x00281051).value)  # G et window width from tag (0028, 1051)
 
         Window_Max = int(Window_Center + Window_Width / 2)
         Window_Min = int(Window_Center - Window_Width / 2)
@@ -480,9 +717,9 @@ class MRIAnnotationTool:
                             self.toolbar_frame.destroy()
                             del self.toolbar_frame
 
-                        if hasattr(self, 'scan_scrollbar'):
-                            self.scan_scrollbar.destroy()
-                            del self.scan_scrollbar
+                        if hasattr(self, 'scan_scale'):
+                            self.scan_scale.destroy()
+                            del self.scan_scale
 
                         if hasattr(self, 'reset_view_button'):
                             self.reset_view_button.destroy()
