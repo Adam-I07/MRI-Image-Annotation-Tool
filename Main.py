@@ -20,7 +20,7 @@ class MRIAnnotationTool:
     def __init__(self, master):
         self.master = master
         self.master.title("MRI Annotation Tool")
-        self.master.geometry("1000x700")
+        self.master.geometry("1100x700")
         self.master.resizable(0, 0)
 
         # Add a variable to track the pen drawing state
@@ -42,22 +42,28 @@ class MRIAnnotationTool:
 
         # Frame Creation
         self.menu_frame = ttk.Frame(master, height=100, borderwidth=3, relief='sunken')
-        self.menu_frame.grid(row=0, column=0, columnspan=2, sticky='ew')
-        self.viewer_frame = ttk.Frame(master, width=700, borderwidth=2, relief='sunken')
-        self.viewer_frame.grid(row=1, column=0, sticky='nsew')
-        self.pirad_frame = ttk.Frame(master, width=300, borderwidth=2, relief='sunken')
-        self.pirad_frame.grid(row=1, column=1, sticky='nsew')
+        self.menu_frame.grid(row=0, column=0, columnspan=3, sticky='ew')  # Span across all columns
+
+        self.tool_frame = ttk.Frame(master, width=150, borderwidth=2, relief='sunken')
+        self.tool_frame.grid(row=1, column=0, sticky='nsew')
+
+        self.viewer_frame = ttk.Frame(master, width=600, borderwidth=2, relief='sunken')
+        self.viewer_frame.grid(row=1, column=1, sticky='nsew')
+
+        self.pirad_frame = ttk.Frame(master, width=250, borderwidth=2, relief='sunken')
+        self.pirad_frame.grid(row=1, column=2, sticky='nsew')
 
         # Set weight for resizable rows and columns
         self.master.grid_rowconfigure(1, weight=1)
         self.master.grid_columnconfigure(0, weight=1)
         self.master.grid_columnconfigure(1, weight=1)
+        self.master.grid_columnconfigure(2, weight=1)
 
         # Menu Widgets and Buttons
         self.menu_title_label = ttk.Label(self.menu_frame, text="MRI Image Annotation Tool", font=("Caslon", 25))
         self.menu_title_label.grid(row=0, column=0, padx=10, pady=10)
         self.upload_scan_button = ttk.Button(self.menu_frame, text="Upload Scans", command=self.upload_scans)
-        self.upload_scan_button.grid(row=0, column=1, padx=(140,20))
+        self.upload_scan_button.grid(row=0, column=1, padx=(235,20))
         self.display_scan_button = ttk.Button(self.menu_frame, text="Display Scans", command=self.display_scans)
         self.display_scan_button.grid(row=0, column=2, padx=(0,20))
         self.delete_scan_button = ttk.Button(self.menu_frame, text="Delete Scans", command=self.delete_scans)
@@ -72,6 +78,11 @@ class MRIAnnotationTool:
         self.load_scan_viewer()
         self.viewer_frame.grid_propagate(0)
 
+        # Tool Widgets and Buttons
+        self.tool_title_label = ttk.Label(self.tool_frame, text="Tools", font=("Caslon", 22))
+        self.tool_title_label.grid(row=0, column=0, padx=(60,0), sticky=tk.W)
+        self.tool_frame.grid_propagate(0)
+
         # PI-RAD Frame Widgets and Buttons
         self.pirad_title_label = ttk.Label(self.pirad_frame, text="PI-RADS", font=("Caslon", 22))
         self.pirad_title_label.grid(row=0, column=0, padx=100)
@@ -82,7 +93,6 @@ class MRIAnnotationTool:
         self.master.destroy()
 
     #Following code is the start for the Scan Viewer to be displayed on the Main Menu
-            #Following code is the start for the Scan Viewer to be displayed on the Main Menu
     def load_scan_viewer(self):
         self.original_xlim = None
         self.original_ylim = None
@@ -130,7 +140,7 @@ class MRIAnnotationTool:
 
             # Create a frame for the canvas
             self.canvas_frame = tk.Frame(self.viewer_frame)
-            self.canvas_frame.grid(row=1, column=0, padx=(50, 0), pady=(10, 0))
+            self.canvas_frame.grid(row=1, column=0, padx=(0, 0), pady=(10, 0))
 
             self.canvas = FigureCanvasTkAgg(self.f, self.canvas_frame)
 
@@ -141,65 +151,48 @@ class MRIAnnotationTool:
             self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
             self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
             self.canvas.mpl_connect('motion_notify_event', self.draw_on_canvas)
+            self.canvas.mpl_connect('motion_notify_event', self.on_mouse_motion)
 
             # Draw canvas
             self.canvas.draw()
-            self.canvas.get_tk_widget().grid(row=2, column=0, padx=(10, 0))
+            self.canvas.get_tk_widget().grid(row=2, column=0, padx=(0, 0))
 
             # Override the home method to use custom reset_zoom
             self.toolbar_home = self.reset_zoom
-
-            # Bind mouse scroll event to zoom
-            #self.canvas.mpl_connect('scroll_event', self.on_mouse_scroll) if hasattr(self, 'on_mouse_scroll') else None
-
-            # Create a frame for the toolbar
             self.toolbar_frame = ttk.Frame(self.viewer_frame)
 
-            self.scan_scale = ttk.Scale(self.viewer_frame, orient="vertical", from_=1, to=len(self.scans_collective), command=self.next_scan)
-            self.scan_scale.grid(row=1, column=1, padx=(0,0))
+            self.scan_scale = ttk.Scale(self.viewer_frame, orient="horizontal", from_=1, to=len(self.scans_collective), command=self.next_scan)
+            self.scan_scale.grid(row=2, column=0, padx=(50,0))
 
-            
-            self.reset_view_button = ttk.Button(self.viewer_frame, text="Reset", command=self.reset_view)
-            self.reset_view_button.grid(row=2, column=0, padx=(0, 50))
-            self.zoom_button = ttk.Button(self.viewer_frame, text="Zoom", command=self.activate_zoom)
-            self.zoom_button.grid(row=2, column=0, padx=(150,0))
-            self.scroll_zoom_button = ttk.Button(self.viewer_frame, text="Scroll Zoom", command=self.activate_scroll_zoom)
-            self.scroll_zoom_button.grid(row=2, column=0, padx=(370,0))
+            # Create Viewing Widgets
+            self.viewing_widgets_label = ttk.Label(self.tool_frame, text="     Viewing\nFunctionality")
+            self.viewing_widgets_label.grid(row=7, column=0, padx=(30,0), pady=(30,0))
+            self.reset_view_button = ttk.Button(self.tool_frame, text="Reset", command=self.reset_view)
+            self.reset_view_button.grid(row=8, column=0, padx=(30, 0))
+            self.zoom_button = ttk.Button(self.tool_frame, text="Zoom", command=self.activate_zoom)
+            self.zoom_button.grid(row=9, column=0, padx=(30,0))
+            self.scroll_zoom_button = ttk.Button(self.tool_frame, text="Scroll Zoom", command=self.activate_scroll_zoom)
+            self.scroll_zoom_button.grid(row=10, column=0, padx=(30,0))
             self.coordinates_label = ttk.Label(self.viewer_frame, text="Coordinates: (0, 0)", font=("Calibri", 12))
             self.coordinates_label.grid(row=2, column=0, padx=(0, 310))
 
-            self.zoom_status_label = ttk.Label(self.viewer_frame, text="     Zoom\nDeactivated", font=("Calibri", 12), foreground="red")
-            self.zoom_status_label.grid(row=3, column=0, padx=(150, 0))
-            self.scroll_zoom_status_label = ttk.Label(self.viewer_frame, text="Scroll Zoom\nDeactivated", font=("Calibri", 12), foreground="red")
-            self.scroll_zoom_status_label.grid(row=3, column=0, padx=(370, 0))
-
             # Annotation Tools Widgets
-            self.chosencolour = 'black'
-            self.line_width = 1  # Default line width
+            self.chosencolour = 'red'
+            self.line_width = 2  # Default line width
 
-            self.annotation_tool_label = ttk.Label(self.viewer_frame, text="Annotation\n     Tools:", font=("Calibri", 20))
-            self.annotation_tool_label.grid(row=1, column=0, padx=(2, 540), pady=(0,370))
-            self.pen_button = ttk.Button(self.viewer_frame, text="Pen", command=self.activate_pen)
-            self.pen_button.grid(row=1, column=0, padx=(2, 540), pady=(0,300))
-            self.colour_button = ttk.Button(self.viewer_frame, text="Colour", command=self.choose_colour)
-            self.colour_button.grid(row=1, column=0, padx=(2, 540), pady=(0,250))
-            self.undo_button = ttk.Button(self.viewer_frame, text="Undo", command=self.activate_undo)
-            self.undo_button.grid(row=1, column=0, padx=(2, 540), pady=(0,200))
-            self.choose_pen_size_label = ttk.Label(self.viewer_frame, text="Pen Size:", font=("Calibri", 12))
-            self.choose_pen_size_label.grid(row=1, column=0, padx=(2, 540), pady=(0,150))
-            self.choose_pen_size_scale = tk.Scale(self.viewer_frame, from_=1, to=10, orient='horizontal', command=self.update_pen_size, showvalue=False)
+            self.annotation_tool_label = ttk.Label(self.tool_frame, text="Annotation\n     Tools:", font=("Calibri", 14))
+            self.annotation_tool_label.grid(row=1, column=0, padx=(30, 0), pady=(25, 0))
+            self.pen_button = ttk.Button(self.tool_frame, text="Pen", command=self.activate_pen)
+            self.pen_button.grid(row=2, column=0, padx=(30, 0), pady=(0,0))
+            self.colour_button = ttk.Button(self.tool_frame, text="Colour", command=self.choose_colour)
+            self.colour_button.grid(row=3, column=0, padx=(30, 0), pady=(0,0))
+            self.undo_button = ttk.Button(self.tool_frame, text="Undo", command=self.activate_undo)
+            self.undo_button.grid(row=4, column=0, padx=(30, 0), pady=(0,0))
+            self.choose_pen_size_label = ttk.Label(self.tool_frame, text="Pen Size:", font=("Calibri", 12))
+            self.choose_pen_size_label.grid(row=5, column=0, padx=(30, 0), pady=(0,0))
+            self.choose_pen_size_scale = tk.Scale(self.tool_frame, from_=1, to=10, orient='horizontal', command=self.update_pen_size, showvalue=False)
             self.choose_pen_size_scale.set(self.line_width)
-            self.choose_pen_size_scale.grid(row=1, column=0, padx=(2, 540), pady=(0,120))     
-
-            self.annotation_tool_status_label = ttk.Label(self.viewer_frame, text="Tools Status:", font=("Calibri", 17))
-            self.annotation_tool_status_label.grid(row=1, column=0, padx=(2, 540), pady=(0,50))
-            self.undo_status_label = ttk.Label(self.viewer_frame, text="Undo Deactivated", font=("Calibri", 12), foreground="red")
-            self.undo_status_label.grid(row=1, column=0, padx=(2, 540), pady=(0,10))
-            self.pen_activated_label = ttk.Label(self.viewer_frame, text="Pen Deactivated", font=("Calibri", 12), foreground="red")
-            self.pen_activated_label.grid(row=1, column=0, padx=(2, 540), pady=(20,0))                 
-
-            # Bind mouse motion event to update coordinates label
-            self.canvas.mpl_connect('motion_notify_event', self.on_mouse_motion)
+            self.choose_pen_size_scale.grid(row=6, column=0, padx=(30, 0), pady=(0,0))                  
 
             # Create a new toolbar instance
             self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
@@ -254,47 +247,38 @@ class MRIAnnotationTool:
             self.scroll_zoom_callback_id = self.canvas.mpl_connect('scroll_event', self.on_mouse_scroll)
         else:
             self.active_button = None
-            self.scroll_zoom_status_label.config(text="Scroll Zoom Deactivated", foreground="red")
+            self.scroll_zoom_status_label.config(text="Scroll Zoom\nDeactivated", foreground="red")
             # Disconnect the scroll event for scroll zoom
             if hasattr(self, 'scroll_zoom_callback_id') and self.scroll_zoom_callback_id:
                 self.canvas.mpl_disconnect(self.scroll_zoom_callback_id)
     
-    def activate_zoom(self):
+    def activate_zoom(self, deactivate=False):
         if self.pen_active:
-            messagebox.showinfo('Warning', 'Please deactivate pen before activating zoom.')
-            return
-        
+            self.pen_active = False
+
         if self.undo_active:
-            messagebox.showinfo('Warning', 'Please deactivate undo before activating zoom.')
-            return
+            self.activate_undo()
+            # Disconnect the delete_selected_line method from the mouse click event
+            if hasattr(self, 'undo_callback_id') and self.undo_callback_id:
+                self.canvas.mpl_disconnect(self.undo_callback_id)
 
         # Toggle the zoom_active state
-        self.zoom_active = not self.zoom_active
-
-        # Disable drawing when the zoom button is clicked
-        self.drawing = False
-        self.pen_active = False
-        self.pen_activated_label.configure(text="Pen deactivated", foreground="red")
+        self.zoom_active = not deactivate
 
         # Check the zoom activation state and update the button and label accordingly
         if self.zoom_active:
             self.active_button = self.zoom_button
-            self.zoom_status_label.config(text="Zoom Active", foreground="green")
-        else:
-            self.active_button = None
-            self.zoom_status_label.config(text="     Zoom\nDeactivated", foreground="red")
 
         # Trigger the "Zoom to Rectangle" functionality directly
         self.toolbar.zoom()
 
+
     def activate_undo(self):
         if self.pen_active:
-            messagebox.showinfo('Warning', 'Please deactivate pen before activating undo.')
-            return
+            self.pen_active = False
     
         if self.zoom_active:
-            messagebox.showinfo('Warning', 'Please deactivate zoom before activating undo.')
-            return
+            self.activate_zoom(deactivate=True)
 
         # Toggle the undo_active state
         self.undo_active = not self.undo_active
@@ -302,42 +286,30 @@ class MRIAnnotationTool:
        # Check the undo activation state and update the button and label accordingly
         if self.undo_active:
             self.active_button = self.undo_button
-            self.undo_status_label.config(text="Undo Active", foreground="green")
-
             # Connect the delete_selected_line method to the mouse click event
             self.undo_callback_id = self.canvas.mpl_connect('button_press_event', self.delete_selected_line)
-        else:
-            self.active_button = None
-            self.undo_status_label.config(text="Undo Deactivated", foreground="red")
-
-            # Disconnect the delete_selected_line method from the mouse click event
-            if hasattr(self, 'undo_callback_id') and self.undo_callback_id:
-                self.canvas.mpl_disconnect(self.undo_callback_id)
 
 
     def activate_pen(self):
         if self.zoom_active:
-            messagebox.showinfo('Warning', 'Please deactivate zoom before activating pen.')
-            return
+            self.activate_zoom(deactivate=True)
         
         if self.undo_active:
-            messagebox.showinfo('Warning', 'Please deactivate undo before activating pen.')
-            return
+            self.undo_active = False
+            # Disconnect the delete_selected_line method from the mouse click event
+            if hasattr(self, 'undo_callback_id') and self.undo_callback_id:
+                self.canvas.mpl_disconnect(self.undo_callback_id)
 
         self.active_button = self.pen_button
         self.drawing = True
         self.pen_active = not self.pen_active
-        self.pen_activated_label.configure(text="Pen active", foreground="green") if self.pen_active else self.pen_activated_label.configure(text="Pen Deactivated", foreground="red")
-
         # Update the button appearance based on the activation state
         if self.pen_active:
             self.active_button = self.pen_button
             self.drawing = True
-            self.pen_activated_label.configure(text="Pen active", foreground="green")
         else:
             self.active_button = None
             self.drawing = False
-            self.pen_activated_label.configure(text="Pen Deactivated", foreground="red")
 
         # Toggle pen activation state
         if self.pen_active:
@@ -451,7 +423,9 @@ class MRIAnnotationTool:
             if event.xdata is not None and event.ydata is not None:
                 x, y = int(event.xdata), int(event.ydata)
             else:
-                x, y = 0, 0
+                x = self.prev_x
+                y = self.prev_y
+                
 
             # Check if the coordinates are within the valid range
             if 0 <= x < self.canvas_width and 0 <= y < self.canvas_height:
@@ -555,7 +529,6 @@ class MRIAnnotationTool:
                 self.current_opened_scan = scan_folder_name
                 self.display_scans_window.destroy()
                 self.load_scan_viewer()
-                messagebox.showinfo('Success', 'Scans have successully opened for viewing')
         else:
             messagebox.showerror('Error', 'Select a scan set please')
 
