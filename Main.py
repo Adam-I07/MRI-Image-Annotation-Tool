@@ -242,12 +242,10 @@ class MRIAnnotationTool:
         # Check the scroll zoom activation state and update the button and label accordingly
         if self.scroll_zoom_active:
             self.active_button = self.scroll_zoom_button
-            self.scroll_zoom_status_label.config(text="Scroll Zoom Active", foreground="green")
             # Bind mouse scroll event to scroll zoom
             self.scroll_zoom_callback_id = self.canvas.mpl_connect('scroll_event', self.on_mouse_scroll)
         else:
             self.active_button = None
-            self.scroll_zoom_status_label.config(text="Scroll Zoom\nDeactivated", foreground="red")
             # Disconnect the scroll event for scroll zoom
             if hasattr(self, 'scroll_zoom_callback_id') and self.scroll_zoom_callback_id:
                 self.canvas.mpl_disconnect(self.scroll_zoom_callback_id)
