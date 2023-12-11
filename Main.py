@@ -14,6 +14,7 @@ import pydicom as PDCM
 from tkinter.filedialog import askdirectory
 import shutil
 from tkinter.colorchooser import askcolor
+import json
 
 
 class MRIAnnotationTool:
@@ -30,11 +31,12 @@ class MRIAnnotationTool:
         self.pen_active = False
         self.zoom_active = False
         self.undo_active = False
-        self.scroll_zoom_active = False
         self.drawn_lines = []
         self.all_lines = []
         self.active_button = None
         self.current_lines = []
+
+        self.current_opened_scan = None
 
         # Add canvas width and height attributes
         self.canvas_width = 0
@@ -98,7 +100,7 @@ class MRIAnnotationTool:
         self.original_ylim = None
         self.original_views = None
 
-        # Destroy existing widgets
+        # Destroy existing widgets in the viewer
         if hasattr(self, 'canvas_frame'):
             self.canvas_frame.destroy()
             del self.canvas_frame
@@ -107,13 +109,57 @@ class MRIAnnotationTool:
             self.canvas.get_tk_widget().destroy()
             del self.canvas
 
-        if hasattr(self, 'toolbar'):
-            self.toolbar.destroy()
-            del self.toolbar
+        if hasattr(self, 'toolbar_frame'):
+            self.toolbar_frame.destroy()
+            del self.toolbar_frame
 
         if hasattr(self, 'scan_scale'):
             self.scan_scale.destroy()
             del self.scan_scale
+
+        if hasattr(self, 'reset_view_button'):
+            self.reset_view_button.destroy()
+            del self.reset_view_button
+
+        if hasattr(self, 'zoom_button'):
+            self.zoom_button.destroy()
+            del self.zoom_button
+
+        if hasattr(self, 'coordinates_label'):
+            self.coordinates_label.destroy()
+            del self.coordinates_label
+
+        if hasattr(self, 'toolbar'):
+            self.toolbar.destroy()
+            del self.toolbar
+
+        if hasattr(self, 'viewing_widgets_label'):
+            self.viewing_widgets_label.destroy()
+            del self.viewing_widgets_label
+
+        if hasattr(self, 'annotation_tool_label'):
+            self.annotation_tool_label.destroy()
+            del self.annotation_tool_label
+        
+        if hasattr(self, 'pen_button'):
+            self.pen_button.destroy()
+            del self.pen_button
+        
+        if hasattr(self, 'colour_button'):
+            self.colour_button.destroy()
+            del self.colour_button
+
+        if hasattr(self, 'undo_button'):
+            self.undo_button.destroy()
+            del self.undo_button
+        
+        if hasattr(self, 'choose_pen_size_label'):
+            self.choose_pen_size_label.destroy()
+            del self.choose_pen_size_label
+        
+        if hasattr(self, 'choose_pen_size_scale'):
+            self.choose_pen_size_scale.destroy()
+            del self.choose_pen_size_scale
 
         if self.scans_collective:
             self.current_scan_num = 0
@@ -148,6 +194,7 @@ class MRIAnnotationTool:
             self.canvas_width, self.canvas_height = self.f.get_size_inches() * self.f.dpi
 
              # Bind mouse button press, release, and motion events for drawing
+            self.canvas.mpl_connect('scroll_event', self.on_mouse_scroll) if hasattr(self, 'on_mouse_scroll') else None
             self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
             self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
             self.canvas.mpl_connect('motion_notify_event', self.draw_on_canvas)
@@ -171,8 +218,6 @@ class MRIAnnotationTool:
             self.reset_view_button.grid(row=8, column=0, padx=(30, 0))
             self.zoom_button = ttk.Button(self.tool_frame, text="Zoom", command=self.activate_zoom)
             self.zoom_button.grid(row=9, column=0, padx=(30,0))
-            self.scroll_zoom_button = ttk.Button(self.tool_frame, text="Scroll Zoom", command=self.activate_scroll_zoom)
-            self.scroll_zoom_button.grid(row=10, column=0, padx=(30,0))
             self.coordinates_label = ttk.Label(self.viewer_frame, text="Coordinates: (0, 0)", font=("Calibri", 12))
             self.coordinates_label.grid(row=2, column=0, padx=(0, 310))
 
@@ -234,21 +279,7 @@ class MRIAnnotationTool:
 
         # Redraw the canvas
         self.canvas.draw()
-    
-    def activate_scroll_zoom(self):
-        # Toggle the scroll_zoom_active state
-        self.scroll_zoom_active = not self.scroll_zoom_active
 
-        # Check the scroll zoom activation state and update the button and label accordingly
-        if self.scroll_zoom_active:
-            self.active_button = self.scroll_zoom_button
-            # Bind mouse scroll event to scroll zoom
-            self.scroll_zoom_callback_id = self.canvas.mpl_connect('scroll_event', self.on_mouse_scroll)
-        else:
-            self.active_button = None
-            # Disconnect the scroll event for scroll zoom
-            if hasattr(self, 'scroll_zoom_callback_id') and self.scroll_zoom_callback_id:
-                self.canvas.mpl_disconnect(self.scroll_zoom_callback_id)
     
     def activate_zoom(self, deactivate=False):
         if self.pen_active:
@@ -491,7 +522,6 @@ class MRIAnnotationTool:
         if '.DS_Store' in current_folders:
             current_folders.remove('.DS_Store') 
 
-
         self.display_scan_window_name_label = ttk.Label(self.display_scans_window, text="Display Scan", font=("Caslon", 22))
         self.display_scan_window_name_label.grid(row=0, column=0, padx=(140,0), pady=10)
         self.select_scan_label = ttk.Label(self.display_scans_window, text="Select a scan set:", font=("Calibri", 12))
@@ -512,6 +542,10 @@ class MRIAnnotationTool:
             scans_list.sort()
             if '.DS_Store' in scans_list:
                 scans_list.remove('.DS_Store')
+
+            if f'{scan_folder_name}_annotation_information.json' in scans_list:
+                scans_list.remove(f'{scan_folder_name}_annotation_information.json')
+
             for i in range(0, len(scans_list)):
                 scan_name = (f'{scans_dir}/{scans_list[i]}')
                 self.scans_collective.append(scan_name)
@@ -531,7 +565,6 @@ class MRIAnnotationTool:
             messagebox.showerror('Error', 'Select a scan set please')
 
     #End of Display Scans code
-
 
     #Following code is the start for the Uploading Scans
     def upload_scans(self):
@@ -553,6 +586,17 @@ class MRIAnnotationTool:
 
         self.upload_scan_window.mainloop()
     
+    def save_scan_set_to_json(self, scan_set_name, scan_data):
+        # Name the file using the scan set entered by the user
+        json_filename = f"saved_scans/{scan_set_name}/{scan_set_name}_annotation_information.json"
+
+        # Open a JSON file in write mode ('w') using a context manager ('with' statement)
+        # The file will be automatically closed when the block of code is exited
+        with open(json_filename, 'w') as json_file:
+            # Use the json.dump function to serialize the Python object (scan_data) 
+            # and write it to the specified file (json_file)
+            json.dump(scan_data, json_file)
+
     def upload_scan_folder(self, scan_folder_name):
         if scan_folder_name:
             if ' ' in scan_folder_name:
@@ -579,11 +623,22 @@ class MRIAnnotationTool:
                         if os.path.isdir(new_folder_path) is False:
                             os.mkdir(new_folder_path)
 
+                        # Create a list to store scan data
+                        scan_data = []
+
                         for i in range(0, len(input_scans_list)):
                             dicom_path = os.path.join(current_scans_folder, input_scans_list[i])
                             output_scans, instance_number = self.dicom_to_png(dicom_path)
                             cv.imwrite(os.path.join(new_folder_path, f"{instance_number - 1:04d}.png"), output_scans)
+
+                            # Collect scan data
+                            scan_data.append({
+                                'scan_id': f"{instance_number - 1:04d}.png",
+                                'coordinates': [],  # Placeholder for coordinates (to be collected during annotation)
+                            })
                         
+                        # Save scan data to JSON file
+                        self.save_scan_set_to_json(scan_folder_name, scan_data)
                         messagebox.showinfo('Scans Uploaded', 'Scans have been uploaded successfully.')
 
                         # Close the upload_scan_window
@@ -707,6 +762,34 @@ class MRIAnnotationTool:
                         if hasattr(self, 'toolbar'):
                             self.toolbar.destroy()
                             del self.toolbar
+
+                        if hasattr(self, 'viewing_widgets_label'):
+                            self.viewing_widgets_label.destroy()
+                            del self.viewing_widgets_label
+
+                        if hasattr(self, 'annotation_tool_label'):
+                            self.annotation_tool_label.destroy()
+                            del self.annotation_tool_label
+                        
+                        if hasattr(self, 'pen_button'):
+                            self.pen_button.destroy()
+                            del self.pen_button
+                        
+                        if hasattr(self, 'colour_button'):
+                            self.colour_button.destroy()
+                            del self.colour_button
+
+                        if hasattr(self, 'undo_button'):
+                            self.undo_button.destroy()
+                            del self.undo_button
+                        
+                        if hasattr(self, 'choose_pen_size_label'):
+                            self.choose_pen_size_label.destroy()
+                            del self.choose_pen_size_label
+                        
+                        if hasattr(self, 'choose_pen_size_scale'):
+                            self.choose_pen_size_scale.destroy()
+                            del self.choose_pen_size_scale
 
                     shutil.rmtree(file_path_to_delete)
                     messagebox.showinfo("Deleted", f"{scan_folder_to_delete} has been successfully deleted")
