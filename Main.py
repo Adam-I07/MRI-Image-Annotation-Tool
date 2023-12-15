@@ -265,17 +265,21 @@ class MRIAnnotationTool:
         self.canvas.draw()
 
     def reset_view(self):
-        # Get the current NavigationToolbar2Tk instance
+    # Get the current NavigationToolbar2Tk instance
         self.toolbar = self.toolbar
-
         # Reset the view using the NavigationToolbar2Tk's home button
-        self.toolbar.home()
+        self.toolbar_home()
 
         # Update the displayed scan
         self.a.clear()
         scan_arr = mpimg.imread(self.scans_collective[self.current_scan_num])
         self.a.imshow(scan_arr, cmap='gray', aspect='equal')
         self.a.axis('off')
+
+        # Redraw all the lines from self.all_lines excluding undone lines]
+        for sequence in self.all_lines:
+            for line in sequence:
+                self.a.add_line(line)
 
         # Redraw the canvas
         self.canvas.draw()
@@ -317,6 +321,10 @@ class MRIAnnotationTool:
             self.active_button = self.undo_button
             # Connect the delete_selected_line method to the mouse click event
             self.undo_callback_id = self.canvas.mpl_connect('button_press_event', self.delete_selected_line)
+        else:
+            # Disconnect the delete_selected_line method from the mouse click event
+            if hasattr(self, 'undo_callback_id') and self.undo_callback_id:
+                self.canvas.mpl_disconnect(self.undo_callback_id)
 
 
     def activate_pen(self):
@@ -446,7 +454,7 @@ class MRIAnnotationTool:
                 # Add the current list of lines to the list of all lines
                 if self.current_lines:
                     self.all_lines.append(self.current_lines)
-    
+
     def draw_on_canvas(self, event):
         if event.name == 'motion_notify_event' and self.drawing:
             if event.xdata is not None and event.ydata is not None:
@@ -454,10 +462,9 @@ class MRIAnnotationTool:
             else:
                 x = self.prev_x
                 y = self.prev_y
-                
 
             # Check if the coordinates are within the valid range
-            if 0 <= x < self.canvas_width and 0 <= y < self.canvas_height:
+            if x is not None and y is not None and 0 <= x < self.canvas_width and 0 <= y < self.canvas_height:
                 if event.button == 1 and self.prev_x is not None and self.prev_y is not None:
                     # Check if the line is entirely within the canvas boundaries
                     if 0 <= self.prev_x < self.canvas_width and 0 <= self.prev_y < self.canvas_height:
@@ -480,32 +487,55 @@ class MRIAnnotationTool:
 
     def delete_selected_line(self, event):
         if event.name == 'button_press_event' and event.button == 1:
-                    # Check if the figure exists
-                    if hasattr(self, 'f') and self.f:
-                        # Check if there are any sequences of lines
-                        if self.all_lines:
-                            # Iterate over all lines and check if the click is on any line
-                            for sequence in self.all_lines:
-                                for line in sequence:
-                                    # Check if the figure is set before calling contains
-                                    if hasattr(line, 'figure') and line.figure:
-                                        if line.contains(event)[0]:
-                                            # Remove all lines from the selected sequence
-                                            for l in sequence:
-                                                # Check if the line is still in the list before removing
-                                                if l in self.a.lines:
-                                                    l.remove()
-                                            self.canvas.draw()
+            # Check if the figure exists
+            if hasattr(self, 'f') and self.f:
+                # Check if there are any sequences of lines
+                if self.all_lines:
+                    # Transform event coordinates to data coordinates
+                    x, y = self.a.transData.inverted().transform([event.x, event.y])
 
-                                            # Remove the selected sequence from the list of all lines
-                                            self.all_lines.remove(sequence)
-                                            return
+                    # Iterate over all lines and check if the click is on any line
+                    for sequence in self.all_lines:
+                        for line in sequence:
+                            # Convert line data coordinates to pixel coordinates
+                            line_x, line_y = line.get_xdata(), line.get_ydata()
+                            line_coords = np.column_stack((line_x, line_y))
+                            line_coords_pixels = self.a.transData.transform(line_coords)
+
+                            # Check if the click is on the line
+                            if np.any(np.abs(line_coords_pixels[:, 0] - event.x) < 3) and np.any(
+                                    np.abs(line_coords_pixels[:, 1] - event.y) < 3):
+                                # Remove the entire sequence of lines
+                                for line_to_remove in sequence:
+                                    line_to_remove.remove()
+                                # Remove the entire sequence from the all_lines list
+                                self.remove_sequence(sequence)
+
+                                # Disconnect the delete_selected_line method from the mouse click event
+                                if hasattr(self, 'undo_callback_id') and self.undo_callback_id:
+                                    self.canvas.mpl_disconnect(self.undo_callback_id)
+                                    self.undo_callback_id = None
+
+                                return  # No need to check other lines
+
+                    # If the click is not on any line, clear the current lines list
+                    self.current_lines = []
+                    self.canvas.draw()
+        
+    def remove_sequence(self, sequence_to_remove):
+        # Create a new list without the specified sequence
+        self.all_lines = [sequence for sequence in self.all_lines if sequence != sequence_to_remove]
+
+        # Clear the current lines list
+        self.current_lines = []
+
+        # Redraw the canvas
+        self.canvas.draw()
 
     def clear_drawn_lines(self):
         for line in self.drawn_lines:
             line.remove()
         self.drawn_lines.clear()
-    
     #End of Main Menu Display Viewer Code
 
     #Following code is the start for the Display Scans
@@ -521,6 +551,7 @@ class MRIAnnotationTool:
         current_folders = get_folder_named
         if '.DS_Store' in current_folders:
             current_folders.remove('.DS_Store') 
+
 
         self.display_scan_window_name_label = ttk.Label(self.display_scans_window, text="Display Scan", font=("Caslon", 22))
         self.display_scan_window_name_label.grid(row=0, column=0, padx=(140,0), pady=10)
@@ -542,10 +573,6 @@ class MRIAnnotationTool:
             scans_list.sort()
             if '.DS_Store' in scans_list:
                 scans_list.remove('.DS_Store')
-
-            if f'{scan_folder_name}_annotation_information.json' in scans_list:
-                scans_list.remove(f'{scan_folder_name}_annotation_information.json')
-
             for i in range(0, len(scans_list)):
                 scan_name = (f'{scans_dir}/{scans_list[i]}')
                 self.scans_collective.append(scan_name)
@@ -563,7 +590,7 @@ class MRIAnnotationTool:
                 self.load_scan_viewer()
         else:
             messagebox.showerror('Error', 'Select a scan set please')
-
+  
     #End of Display Scans code
 
     #Following code is the start for the Uploading Scans
