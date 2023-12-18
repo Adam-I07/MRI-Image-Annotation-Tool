@@ -15,7 +15,7 @@ from tkinter.filedialog import askdirectory
 import shutil
 from tkinter.colorchooser import askcolor
 import json
-
+import matplotlib.lines as mlines
 
 class MRIAnnotationTool:
     def __init__(self, master):
@@ -26,16 +26,18 @@ class MRIAnnotationTool:
 
         # Add a variable to track the pen drawing state
         self.drawing = False
-        self.prev_x = None
-        self.prev_y = None
+        self.prev_x = 0
+        self.prev_y = 0
         self.drawing_active = False
         self.zoom_active = False
         self.undo_active = False
-        self.active_button = None
         self.all_annotations = []
+        self.active_button = None
         self.current_annotations = []
-
         self.current_opened_scan = None
+        self.canvas = None
+        self.chosencolour = '#ff0000'  #default colour (red)
+        self.line_width = 2  # Default line width
 
         # Add canvas width and height attributes
         self.canvas_width = 0
@@ -104,7 +106,7 @@ class MRIAnnotationTool:
             self.canvas_frame.destroy()
             del self.canvas_frame
 
-        if hasattr(self, 'canvas'):
+        if hasattr(self, 'canvas') and self.canvas:
             self.canvas.get_tk_widget().destroy()
             del self.canvas
 
@@ -161,13 +163,13 @@ class MRIAnnotationTool:
             del self.choose_pen_size_scale
 
         if self.scans_collective:
-            self.current_scan_num = 0
+            self.current_scan = self.scans_collective[0]
 
             if hasattr(self, 'no_scans_label'):
                 self.no_scans_label.destroy()
                 del self.no_scans_label
 
-            scan_arr = mpimg.imread(self.scans_collective[self.current_scan_num])
+            scan_arr = mpimg.imread(self.current_scan)
 
             # Get the actual size of the image
             actual_height, actual_width = scan_arr.shape
@@ -203,6 +205,10 @@ class MRIAnnotationTool:
             self.canvas.draw()
             self.canvas.get_tk_widget().grid(row=2, column=0, padx=(0, 0))
 
+            # Load annotations for the initial scan
+            json_file_path = os.path.join("saved_scans", f"{self.current_opened_scan}", f"{self.current_opened_scan}_annotation_information.json")
+            self.load_annotations_from_json(json_file_path)
+
             # Override the home method to use custom reset_zoom
             self.toolbar_home = self.reset_zoom
             self.toolbar_frame = ttk.Frame(self.viewer_frame)
@@ -219,11 +225,10 @@ class MRIAnnotationTool:
             self.zoom_button.grid(row=9, column=0, padx=(30,0))
             self.coordinates_label = ttk.Label(self.viewer_frame, text="Coordinates: (0, 0)", font=("Calibri", 12))
             self.coordinates_label.grid(row=2, column=0, padx=(0, 310))
+            self.save_annotations_button = ttk.Button(self.tool_frame, text="Save", command=self.save_annotations)
+            self.save_annotations_button.grid(row=10, column=0, padx=(30,0))
 
             # Annotation Tools Widgets
-            self.chosencolour = 'red'
-            self.line_width = 2  # Default line width
-
             self.annotation_tool_label = ttk.Label(self.tool_frame, text="Annotation\n     Tools:", font=("Calibri", 14))
             self.annotation_tool_label.grid(row=1, column=0, padx=(30, 0), pady=(25, 0))
             self.drawing_button = ttk.Button(self.tool_frame, text="Pen", command=self.activate_drawing)
@@ -254,14 +259,17 @@ class MRIAnnotationTool:
 
     def next_scan(self, scan_number):
         scan_number_int = int(float(scan_number)) - 1
-        scan_arr = mpimg.imread(self.scans_collective[scan_number_int])
-        self.current_scan_num = scan_number_int
+        self.current_scan = self.scans_collective[scan_number_int]
+        scan_arr = mpimg.imread(self.current_scan)
 
         # Update the displayed scan
         self.a.clear()
         self.a.imshow(scan_arr, cmap='gray', aspect='equal')
         self.a.axis('off')
-        self.canvas.draw()
+
+        # Load annotations for the initial scan
+        json_file_path = os.path.join("saved_scans", f"{self.current_opened_scan}", f"{self.current_opened_scan}_annotation_information.json")
+        self.load_annotations_from_json(json_file_path)
 
     def reset_view(self):
     # Get the current NavigationToolbar2Tk instance
@@ -271,7 +279,7 @@ class MRIAnnotationTool:
 
         # Update the displayed scan
         self.a.clear()
-        scan_arr = mpimg.imread(self.scans_collective[self.current_scan_num])
+        scan_arr = mpimg.imread(self.current_scan)
         self.a.imshow(scan_arr, cmap='gray', aspect='equal')
         self.a.axis('off')
 
@@ -462,7 +470,11 @@ class MRIAnnotationTool:
                     # Check if the line is entirely within the canvas boundaries
                     if 0 <= self.prev_x < self.canvas_width and 0 <= self.prev_y < self.canvas_height:
                         # Draw a line and add it to the current list of lines
-                        line = self.a.plot([self.prev_x, x], [self.prev_y, y], linewidth=self.line_width, color=self.chosencolour)[0]
+                        chosen_colour = self.chosencolour
+                        chosen_width = self.line_width
+                        line = self.a.plot([self.prev_x, x], [self.prev_y, y], linewidth=chosen_width, color=chosen_colour)[0]
+                        line.set_color(chosen_colour)
+                        line.set_linewidth(chosen_width)
                         self.current_annotations.append(line)
 
                 self.canvas.draw()
@@ -524,6 +536,102 @@ class MRIAnnotationTool:
 
         # Redraw the canvas
         self.canvas.draw()
+    
+    def load_annotations_from_json(self, filename):
+        self.all_annotations.clear()
+        self.current_annotations.clear()
+
+        with open(filename, 'r') as json_file:
+            data = json.load(json_file)
+
+        # Filter data for the currently opened scan
+        current_scan_id = os.path.basename(self.current_scan)
+        current_scan_data = [entry for entry in data if entry.get("scan_id") == current_scan_id]
+
+        for sequence_data in current_scan_data:
+            sequence_lines = []
+            for annotation_list in sequence_data.get("coordinates", []):
+                annotation_lines = []
+                for line_data in annotation_list:
+                    xdata = np.array(line_data['x'])
+                    ydata = np.array(line_data['y'])
+                    line_colour = line_data['colour']
+                    line_width = line_data['width']
+                    line = mlines.Line2D(xdata, ydata, linewidth=line_width, color=line_colour)
+                    annotation_lines.append(line)
+                
+                if annotation_lines:
+                    sequence_lines.append(annotation_lines)
+
+            if sequence_lines:
+                self.all_annotations.extend(sequence_lines)
+
+        # Redraw the canvas
+        self.redraw_canvas()
+
+
+    def redraw_canvas(self):
+         # Check if canvas is initialized
+        if self.canvas:
+            # Clear the existing lines on the canvas
+            for line in self.a.lines:
+                line.remove()
+
+            # Redraw all the lines from self.all_lines
+            for sequence in self.all_annotations:
+                for line in sequence:
+                    self.a.add_line(line)
+
+            # Redraw the canvas
+            self.canvas.draw()
+        else:
+            return
+
+    def save_annotations(self):
+        # Get the scan ID from the current scan file
+        scan_to_save = os.path.basename(self.current_scan)
+        # Define the JSON file path based on the scan ID
+        json_file_path = os.path.join("saved_scans", f"{self.current_opened_scan}", f"{self.current_opened_scan}_annotation_information.json")
+        # Read the existing JSON data from the file
+        with open(json_file_path, 'r') as json_file:
+            existing_data = json.load(json_file)
+
+        # Remove existing annotations for the current scan_id
+        for entry in existing_data:
+            if entry["scan_id"] == scan_to_save:
+                entry["coordinates"] = []
+                break  # Stop searching once the entry is found
+
+        # Save the updated data back to the JSON file
+        with open(json_file_path, 'w') as json_file:
+            json.dump(existing_data, json_file)
+        
+        if self.all_annotations:
+            data_to_save = []
+            # Add the new annotations for the current scan_id
+            for sequence in self.all_annotations:
+                sequence_data = []
+                for line in sequence:
+                    xdata, ydata = line.get_xdata(), line.get_ydata()
+                    chosen_colour, chosen_width = line.get_color(), line.get_linewidth()
+                    xdata_np, ydata_np = np.array(xdata), np.array(ydata)
+                    line_data = {'x': xdata_np.tolist(), 'y': ydata_np.tolist(), 'colour': chosen_colour, 'width': chosen_width}
+                    sequence_data.append(line_data)
+                data_to_save.append(sequence_data)
+
+            # Find the entry with the matching scan_id
+            for entry in existing_data:
+                if entry["scan_id"] == scan_to_save:
+                    # Update the coordinates field with the new data
+                    entry["coordinates"] = data_to_save
+                    break  # Stop searching once the entry is found
+
+            # Save the updated annotations to the JSON file
+            with open(json_file_path, 'w') as json_file:
+                json.dump(existing_data, json_file)
+
+        # Redraw the canvas
+        self.redraw_canvas()
     #End of Main Menu Display Viewer Code
 
     #Following code is the start for the Display Scans
