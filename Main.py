@@ -28,13 +28,12 @@ class MRIAnnotationTool:
         self.drawing = False
         self.prev_x = None
         self.prev_y = None
-        self.pen_active = False
+        self.drawing_active = False
         self.zoom_active = False
         self.undo_active = False
-        self.drawn_lines = []
-        self.all_lines = []
         self.active_button = None
-        self.current_lines = []
+        self.all_annotations = []
+        self.current_annotations = []
 
         self.current_opened_scan = None
 
@@ -141,9 +140,9 @@ class MRIAnnotationTool:
             self.annotation_tool_label.destroy()
             del self.annotation_tool_label
         
-        if hasattr(self, 'pen_button'):
-            self.pen_button.destroy()
-            del self.pen_button
+        if hasattr(self, 'drawing_button'):
+            self.drawing_button.destroy()
+            del self.drawing_button
         
         if hasattr(self, 'colour_button'):
             self.colour_button.destroy()
@@ -227,8 +226,8 @@ class MRIAnnotationTool:
 
             self.annotation_tool_label = ttk.Label(self.tool_frame, text="Annotation\n     Tools:", font=("Calibri", 14))
             self.annotation_tool_label.grid(row=1, column=0, padx=(30, 0), pady=(25, 0))
-            self.pen_button = ttk.Button(self.tool_frame, text="Pen", command=self.activate_pen)
-            self.pen_button.grid(row=2, column=0, padx=(30, 0), pady=(0,0))
+            self.drawing_button = ttk.Button(self.tool_frame, text="Pen", command=self.activate_drawing)
+            self.drawing_button.grid(row=2, column=0, padx=(30, 0), pady=(0,0))
             self.colour_button = ttk.Button(self.tool_frame, text="Colour", command=self.choose_colour)
             self.colour_button.grid(row=3, column=0, padx=(30, 0), pady=(0,0))
             self.undo_button = ttk.Button(self.tool_frame, text="Undo", command=self.activate_undo)
@@ -276,8 +275,8 @@ class MRIAnnotationTool:
         self.a.imshow(scan_arr, cmap='gray', aspect='equal')
         self.a.axis('off')
 
-        # Redraw all the lines from self.all_lines excluding undone lines]
-        for sequence in self.all_lines:
+        # Redraw all the lines from self.all_annotations excluding undone lines]
+        for sequence in self.all_annotations:
             for line in sequence:
                 self.a.add_line(line)
 
@@ -286,8 +285,8 @@ class MRIAnnotationTool:
 
     
     def activate_zoom(self, deactivate=False):
-        if self.pen_active:
-            self.pen_active = False
+        if self.drawing_active:
+            self.drawing_active = False
 
         if self.undo_active:
             self.activate_undo()
@@ -307,8 +306,8 @@ class MRIAnnotationTool:
 
 
     def activate_undo(self):
-        if self.pen_active:
-            self.pen_active = False
+        if self.drawing_active:
+            self.drawing_active = False
     
         if self.zoom_active:
             self.activate_zoom(deactivate=True)
@@ -327,7 +326,7 @@ class MRIAnnotationTool:
                 self.canvas.mpl_disconnect(self.undo_callback_id)
 
 
-    def activate_pen(self):
+    def activate_drawing(self):
         if self.zoom_active:
             self.activate_zoom(deactivate=True)
         
@@ -337,28 +336,22 @@ class MRIAnnotationTool:
             if hasattr(self, 'undo_callback_id') and self.undo_callback_id:
                 self.canvas.mpl_disconnect(self.undo_callback_id)
 
-        self.active_button = self.pen_button
+        self.active_button = self.drawing_button
         self.drawing = True
-        self.pen_active = not self.pen_active
+        self.drawing_active = not self.drawing_active
         # Update the button appearance based on the activation state
-        if self.pen_active:
-            self.active_button = self.pen_button
+        if self.drawing_active:
+            self.active_button = self.drawing_button
             self.drawing = True
         else:
             self.active_button = None
-            self.drawing = False
-
-        # Toggle pen activation state
-        if self.pen_active:
-            self.drawing = True
-        else:
             self.drawing = False
             self.prev_x = None
             self.prev_y = None
 
             # Add the current list of lines to the list of all lines
-            if self.current_lines:
-                self.all_lines.append(self.current_lines)
+            if self.current_annotations:
+                self.all_annotations.append(self.current_annotations)
 
     def on_mouse_scroll(self, event):
         # Check if the event was a scroll event
@@ -434,10 +427,10 @@ class MRIAnnotationTool:
 
     def on_mouse_press(self, event):
         if event.name == 'button_press_event':
-            if self.active_button == self.pen_button and event.button == 1:
+            if self.active_button == self.drawing_button and event.button == 1:
                 self.drawing = True
                 # Start a new list for the current sequence of lines
-                self.current_lines = []
+                self.current_annotations = []
             elif self.active_button == self.zoom_button and event.button == 1:
                 self.zoom_source = "button"
             elif self.active_button == self.undo_button and event.button == 1:
@@ -452,8 +445,8 @@ class MRIAnnotationTool:
                 self.prev_y = None
 
                 # Add the current list of lines to the list of all lines
-                if self.current_lines:
-                    self.all_lines.append(self.current_lines)
+                if self.current_annotations:
+                    self.all_annotations.append(self.current_annotations)
 
     def draw_on_canvas(self, event):
         if event.name == 'motion_notify_event' and self.drawing:
@@ -470,7 +463,7 @@ class MRIAnnotationTool:
                     if 0 <= self.prev_x < self.canvas_width and 0 <= self.prev_y < self.canvas_height:
                         # Draw a line and add it to the current list of lines
                         line = self.a.plot([self.prev_x, x], [self.prev_y, y], linewidth=self.line_width, color=self.chosencolour)[0]
-                        self.current_lines.append(line)
+                        self.current_annotations.append(line)
 
                 self.canvas.draw()
                 self.prev_x, self.prev_y = x, y
@@ -481,7 +474,7 @@ class MRIAnnotationTool:
 
     def undo_last_line(self):
        # Check if there are any sequences of lines
-        if self.all_lines:
+        if self.all_annotations:
             # Set the callback for the mouse click event to handle line deletion
             self.canvas.mpl_connect('button_press_event', self.delete_selected_line)
 
@@ -490,12 +483,12 @@ class MRIAnnotationTool:
             # Check if the figure exists
             if hasattr(self, 'f') and self.f:
                 # Check if there are any sequences of lines
-                if self.all_lines:
+                if self.all_annotations:
                     # Transform event coordinates to data coordinates
                     x, y = self.a.transData.inverted().transform([event.x, event.y])
 
                     # Iterate over all lines and check if the click is on any line
-                    for sequence in self.all_lines:
+                    for sequence in self.all_annotations:
                         for line in sequence:
                             # Convert line data coordinates to pixel coordinates
                             line_x, line_y = line.get_xdata(), line.get_ydata()
@@ -508,7 +501,7 @@ class MRIAnnotationTool:
                                 # Remove the entire sequence of lines
                                 for line_to_remove in sequence:
                                     line_to_remove.remove()
-                                # Remove the entire sequence from the all_lines list
+                                # Remove the entire sequence from the all_annotations list
                                 self.remove_sequence(sequence)
 
                                 # Disconnect the delete_selected_line method from the mouse click event
@@ -519,23 +512,18 @@ class MRIAnnotationTool:
                                 return  # No need to check other lines
 
                     # If the click is not on any line, clear the current lines list
-                    self.current_lines = []
+                    self.current_annotations = []
                     self.canvas.draw()
         
     def remove_sequence(self, sequence_to_remove):
         # Create a new list without the specified sequence
-        self.all_lines = [sequence for sequence in self.all_lines if sequence != sequence_to_remove]
+        self.all_annotations = [sequence for sequence in self.all_annotations if sequence != sequence_to_remove]
 
         # Clear the current lines list
-        self.current_lines = []
+        self.current_annotations = []
 
         # Redraw the canvas
         self.canvas.draw()
-
-    def clear_drawn_lines(self):
-        for line in self.drawn_lines:
-            line.remove()
-        self.drawn_lines.clear()
     #End of Main Menu Display Viewer Code
 
     #Following code is the start for the Display Scans
@@ -573,10 +561,11 @@ class MRIAnnotationTool:
             scans_list.sort()
             if '.DS_Store' in scans_list:
                 scans_list.remove('.DS_Store')
+            if f'{scan_folder_name}_annotation_information.json' in scans_list:
+                scans_list.remove(f'{scan_folder_name}_annotation_information.json')
             for i in range(0, len(scans_list)):
                 scan_name = (f'{scans_dir}/{scans_list[i]}')
                 self.scans_collective.append(scan_name)
-            
             if not self.scans_collective:
                 messagebox.showwarning('Warning', 'No scans found in the selected folder.')
             else:
@@ -798,9 +787,9 @@ class MRIAnnotationTool:
                             self.annotation_tool_label.destroy()
                             del self.annotation_tool_label
                         
-                        if hasattr(self, 'pen_button'):
-                            self.pen_button.destroy()
-                            del self.pen_button
+                        if hasattr(self, 'drawing_button'):
+                            self.drawing_button.destroy()
+                            del self.drawing_button
                         
                         if hasattr(self, 'colour_button'):
                             self.colour_button.destroy()
