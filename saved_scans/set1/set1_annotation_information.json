@@ -1,1 +1,122 @@
-[{"scan_id": "0000.png", "coordinates": [[{"x": [134, 133], "y": [81, 81], "colour": "#fe20bb", "width": 2.0}, {"x": [133, 132], "y": [81, 81], "colour": "#fe20bb", "width": 2.0}, {"x": [132, 132], "y": [81, 81], "colour": "#fe20bb", "width": 2.0}, {"x": [132, 130], "y": [81, 81], "colour": "#fe20bb", "width": 2.0}, {"x": [130, 128], "y": [81, 81], "colour": "#fe20bb", "width": 2.0}, {"x": [128, 125], "y": [81, 81], "colour": "#fe20bb", "width": 2.0}, {"x": [125, 123], "y": [81, 81], "colour": "#fe20bb", "width": 2.0}, {"x": [123, 121], "y": [81, 82], "colour": "#fe20bb", "width": 2.0}, {"x": [121, 118], "y": [82, 82], "colour": "#fe20bb", "width": 2.0}, {"x": [118, 113], "y": [82, 83], "colour": "#fe20bb", "width": 2.0}, {"x": [113, 111], "y": [83, 83], "colour": "#fe20bb", "width": 2.0}, {"x": [111, 108], "y": [83, 84], "colour": "#fe20bb", "width": 2.0}, {"x": [108, 106], "y": [84, 85], "colour": "#fe20bb", "width": 2.0}, {"x": [106, 102], "y": [85, 86], "colour": "#fe20bb", "width": 2.0}, {"x": [102, 102], "y": [86, 87], "colour": "#fe20bb", "width": 2.0}, {"x": [102, 101], "y": [87, 87], "colour": "#fe20bb", "width": 2.0}, {"x": [101, 100], "y": [87, 88], "colour": "#fe20bb", "width": 2.0}, {"x": [100, 99], "y": [88, 89], "colour": "#fe20bb", "width": 2.0}, {"x": [99, 97], "y": [89, 91], "colour": "#fe20bb", "width": 2.0}, {"x": [97, 96], "y": [91, 92], "colour": "#fe20bb", "width": 2.0}, {"x": [96, 94], "y": [92, 93], "colour": "#fe20bb", "width": 2.0}, {"x": [94, 93], "y": [93, 95], "colour": "#fe20bb", "width": 2.0}, {"x": [93, 92], "y": [95, 97], "colour": "#fe20bb", "width": 2.0}, {"x": [92, 92], "y": [97, 98], "colour": "#fe20bb", "width": 2.0}, {"x": [92, 92], "y": [98, 99], "colour": "#fe20bb", "width": 2.0}, {"x": [92, 92], "y": [99, 102], "colour": "#fe20bb", "width": 2.0}, {"x": [92, 92], "y": [102, 102], "colour": "#fe20bb", "width": 2.0}, {"x": [92, 92], "y": [102, 106], "colour": "#fe20bb", "width": 2.0}, {"x": [92, 93], "y": [106, 109], "colour": "#fe20bb", "width": 2.0}, {"x": [93, 93], "y": [109, 111], "colour": "#fe20bb", "width": 2.0}, {"x": [93, 94], "y": [111, 112], "colour": "#fe20bb", "width": 2.0}, {"x": [94, 97], "y": [112, 116], "colour": "#fe20bb", "width": 2.0}, {"x": [97, 97], "y": [116, 117], "colour": "#fe20bb", "width": 2.0}, {"x": [97, 98], "y": [117, 120], "colour": "#fe20bb", "width": 2.0}, {"x": [98, 100], "y": [120, 122], "colour": "#fe20bb", "width": 2.0}, {"x": [100, 102], "y": [122, 126], "colour": "#fe20bb", "width": 2.0}, {"x": [102, 104], "y": [126, 127], "colour": "#fe20bb", "width": 2.0}, {"x": [104, 107], "y": [127, 130], "colour": "#fe20bb", "width": 2.0}, {"x": [107, 109], "y": [130, 132], "colour": "#fe20bb", "width": 2.0}, {"x": [109, 112], "y": [132, 133], "colour": "#fe20bb", "width": 2.0}, {"x": [112, 115], "y": [133, 134], "colour": "#fe20bb", "width": 2.0}, {"x": [115, 122], "y": [134, 137], "colour": "#fe20bb", "width": 2.0}, {"x": [122, 125], "y": [137, 138], "colour": "#fe20bb", "width": 2.0}, {"x": [125, 129], "y": [138, 139], "colour": "#fe20bb", "width": 2.0}, {"x": [129, 132], "y": [139, 140], "colour": "#fe20bb", "width": 2.0}, {"x": [132, 135], "y": [140, 141], "colour": "#fe20bb", "width": 2.0}, {"x": [135, 137], "y": [141, 141], "colour": "#fe20bb", "width": 2.0}, {"x": [137, 137], "y": [141, 141], "colour": "#fe20bb", "width": 2.0}, {"x": [137, 141], "y": [141, 141], "colour": "#fe20bb", "width": 2.0}, {"x": [141, 142], "y": [141, 141], "colour": "#fe20bb", "width": 2.0}, {"x": [142, 143], "y": [141, 141], "colour": "#fe20bb", "width": 2.0}, {"x": [143, 145], "y": [141, 141], "colour": "#fe20bb", "width": 2.0}, {"x": [145, 147], "y": [141, 140], "colour": "#fe20bb", "width": 2.0}, {"x": [147, 148], "y": [140, 140], "colour": "#fe20bb", "width": 2.0}, {"x": [148, 152], "y": [140, 140], "colour": "#fe20bb", "width": 2.0}, {"x": [152, 155], "y": [140, 139], "colour": "#fe20bb", "width": 2.0}, {"x": [155, 157], "y": [139, 139], "colour": "#fe20bb", "width": 2.0}, {"x": [157, 158], "y": [139, 138], "colour": "#fe20bb", "width": 2.0}, {"x": [158, 160], "y": [138, 138], "colour": "#fe20bb", "width": 2.0}, {"x": [160, 162], "y": [138, 137], "colour": "#fe20bb", "width": 2.0}, {"x": [162, 165], "y": [137, 137], "colour": "#fe20bb", "width": 2.0}, {"x": [165, 169], "y": [137, 137], "colour": "#fe20bb", "width": 2.0}, {"x": [169, 172], "y": [137, 136], "colour": "#fe20bb", "width": 2.0}, {"x": [172, 175], "y": [136, 136], "colour": "#fe20bb", "width": 2.0}, {"x": [175, 177], "y": [136, 135], "colour": "#fe20bb", "width": 2.0}, {"x": [177, 180], "y": [135, 135], "colour": "#fe20bb", "width": 2.0}, {"x": [180, 181], "y": [135, 135], "colour": "#fe20bb", "width": 2.0}, {"x": [181, 187], "y": [135, 133], "colour": "#fe20bb", "width": 2.0}, {"x": [187, 187], "y": [133, 132], "colour": "#fe20bb", "width": 2.0}, {"x": [187, 188], "y": [132, 132], "colour": "#fe20bb", "width": 2.0}, {"x": [188, 189], "y": [132, 132], "colour": "#fe20bb", "width": 2.0}, {"x": [189, 189], "y": [132, 131], "colour": "#fe20bb", "width": 2.0}, {"x": [189, 189], "y": [131, 130], "colour": "#fe20bb", "width": 2.0}, {"x": [189, 190], "y": [130, 129], "colour": "#fe20bb", "width": 2.0}, {"x": [190, 190], "y": [129, 127], "colour": "#fe20bb", "width": 2.0}, {"x": [190, 190], "y": [127, 127], "colour": "#fe20bb", "width": 2.0}, {"x": [190, 190], "y": [127, 125], "colour": "#fe20bb", "width": 2.0}, {"x": [190, 190], "y": [125, 123], "colour": "#fe20bb", "width": 2.0}, {"x": [190, 189], "y": [123, 122], "colour": "#fe20bb", "width": 2.0}, {"x": [189, 189], "y": [122, 121], "colour": "#fe20bb", "width": 2.0}, {"x": [189, 188], "y": [121, 119], "colour": "#fe20bb", "width": 2.0}, {"x": [188, 186], "y": [119, 117], "colour": "#fe20bb", "width": 2.0}, {"x": [186, 185], "y": [117, 115], "colour": "#fe20bb", "width": 2.0}, {"x": [185, 181], "y": [115, 110], "colour": "#fe20bb", "width": 2.0}, {"x": [181, 180], "y": [110, 109], "colour": "#fe20bb", "width": 2.0}, {"x": [180, 177], "y": [109, 106], "colour": "#fe20bb", "width": 2.0}, {"x": [177, 176], "y": [106, 104], "colour": "#fe20bb", "width": 2.0}, {"x": [176, 174], "y": [104, 102], "colour": "#fe20bb", "width": 2.0}, {"x": [174, 172], "y": [102, 101], "colour": "#fe20bb", "width": 2.0}, {"x": [172, 171], "y": [101, 99], "colour": "#fe20bb", "width": 2.0}, {"x": [171, 170], "y": [99, 97], "colour": "#fe20bb", "width": 2.0}, {"x": [170, 169], "y": [97, 97], "colour": "#fe20bb", "width": 2.0}, {"x": [169, 167], "y": [97, 96], "colour": "#fe20bb", "width": 2.0}, {"x": [167, 166], "y": [96, 95], "colour": "#fe20bb", "width": 2.0}, {"x": [166, 165], "y": [95, 94], "colour": "#fe20bb", "width": 2.0}, {"x": [165, 164], "y": [94, 93], "colour": "#fe20bb", "width": 2.0}, {"x": [164, 163], "y": [93, 93], "colour": "#fe20bb", "width": 2.0}, {"x": [163, 162], "y": [93, 92], "colour": "#fe20bb", "width": 2.0}, {"x": [162, 162], "y": [92, 92], "colour": "#fe20bb", "width": 2.0}, {"x": [162, 161], "y": [92, 92], "colour": "#fe20bb", "width": 2.0}, {"x": [161, 160], "y": [92, 91], "colour": "#fe20bb", "width": 2.0}, {"x": [160, 157], "y": [91, 91], "colour": "#fe20bb", "width": 2.0}, {"x": [157, 157], "y": [91, 90], "colour": "#fe20bb", "width": 2.0}, {"x": [157, 156], "y": [90, 89], "colour": "#fe20bb", "width": 2.0}, {"x": [156, 155], "y": [89, 89], "colour": "#fe20bb", "width": 2.0}, {"x": [155, 154], "y": [89, 88], "colour": "#fe20bb", "width": 2.0}, {"x": [154, 153], "y": [88, 88], "colour": "#fe20bb", "width": 2.0}, {"x": [153, 152], "y": [88, 88], "colour": "#fe20bb", "width": 2.0}, {"x": [152, 152], "y": [88, 88], "colour": "#fe20bb", "width": 2.0}, {"x": [152, 151], "y": [88, 87], "colour": "#fe20bb", "width": 2.0}, {"x": [151, 149], "y": [87, 87], "colour": "#fe20bb", "width": 2.0}, {"x": [149, 148], "y": [87, 87], "colour": "#fe20bb", "width": 2.0}, {"x": [148, 147], "y": [87, 86], "colour": "#fe20bb", "width": 2.0}, {"x": [147, 146], "y": [86, 86], "colour": "#fe20bb", "width": 2.0}, {"x": [146, 146], "y": [86, 85], "colour": "#fe20bb", "width": 2.0}, {"x": [146, 145], "y": [85, 85], "colour": "#fe20bb", "width": 2.0}, {"x": [145, 144], "y": [85, 84], "colour": "#fe20bb", "width": 2.0}, {"x": [144, 143], "y": [84, 84], "colour": "#fe20bb", "width": 2.0}, {"x": [143, 143], "y": [84, 83], "colour": "#fe20bb", "width": 2.0}, {"x": [143, 142], "y": [83, 83], "colour": "#fe20bb", "width": 2.0}, {"x": [142, 142], "y": [83, 82], "colour": "#fe20bb", "width": 2.0}, {"x": [142, 140], "y": [82, 82], "colour": "#fe20bb", "width": 2.0}, {"x": [140, 140], "y": [82, 82], "colour": "#fe20bb", "width": 2.0}, {"x": [140, 139], "y": [82, 82], "colour": "#fe20bb", "width": 2.0}, {"x": [139, 138], "y": [82, 82], "colour": "#fe20bb", "width": 2.0}, {"x": [138, 137], "y": [82, 82], "colour": "#fe20bb", "width": 2.0}, {"x": [137, 137], "y": [82, 81], "colour": "#fe20bb", "width": 2.0}, {"x": [137, 136], "y": [81, 81], "colour": "#fe20bb", "width": 2.0}, {"x": [136, 135], "y": [81, 81], "colour": "#fe20bb", "width": 2.0}, {"x": [135, 134], "y": [81, 81], "colour": "#fe20bb", "width": 2.0}, {"x": [134, 133], "y": [81, 81], "colour": "#fe20bb", "width": 2.0}, {"x": [133, 132], "y": [81, 82], "colour": "#fe20bb", "width": 2.0}]]}, {"scan_id": "0001.png", "coordinates": []}, {"scan_id": "0002.png", "coordinates": []}, {"scan_id": "0003.png", "coordinates": []}, {"scan_id": "0004.png", "coordinates": []}, {"scan_id": "0005.png", "coordinates": []}, {"scan_id": "0006.png", "coordinates": []}, {"scan_id": "0007.png", "coordinates": []}, {"scan_id": "0008.png", "coordinates": []}, {"scan_id": "0009.png", "coordinates": []}, {"scan_id": "0010.png", "coordinates": []}, {"scan_id": "0011.png", "coordinates": []}, {"scan_id": "0012.png", "coordinates": []}, {"scan_id": "0013.png", "coordinates": []}, {"scan_id": "0014.png", "coordinates": []}, {"scan_id": "0015.png", "coordinates": []}, {"scan_id": "0016.png", "coordinates": []}, {"scan_id": "0017.png", "coordinates": []}, {"scan_id": "0018.png", "coordinates": []}, {"scan_id": "0019.png", "coordinates": []}, {"scan_id": "0020.png", "coordinates": []}, {"scan_id": "0021.png", "coordinates": []}, {"scan_id": "0022.png", "coordinates": []}, {"scan_id": "0023.png", "coordinates": []}]
+[
+  {
+    "scan_id": "0000.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0001.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0002.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0003.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0004.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0005.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0006.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0007.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0008.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0009.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0010.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0011.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0012.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0013.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0014.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0015.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0016.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0017.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0018.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0019.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0020.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0021.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0022.png",
+    "coordinates": [],
+    "lesion_information": []
+  },
+  {
+    "scan_id": "0023.png",
+    "coordinates": [],
+    "lesion_information": []
+  }
+]

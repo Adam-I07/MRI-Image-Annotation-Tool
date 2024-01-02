@@ -21,20 +21,25 @@ class MRIAnnotationTool:
     def __init__(self, master):
         self.master = master
         self.master.title("MRI Annotation Tool")
-        self.master.geometry("1100x700")
+        self.master.geometry("1100x740")
         self.master.resizable(0, 0)
 
         # Add a variable to track the pen drawing state
         self.drawing = False
         self.prev_x = 0
         self.prev_y = 0
+        self.shape_drawing = False 
         self.drawing_active = False
         self.zoom_active = False
         self.undo_active = False
         self.all_annotations = []
-        self.active_button = None
         self.current_annotations = []
+        self.all_lesions_information = []
+        self.current_lesions_used = []
+        self.next_lesion_number = None
+        self.active_button = None
         self.current_opened_scan = None
+        self.current_opened_lesion = None
         self.canvas = None
         self.chosencolour = '#ff0000'  #default colour (red)
         self.line_width = 2  # Default line width
@@ -134,9 +139,17 @@ class MRIAnnotationTool:
             self.toolbar.destroy()
             del self.toolbar
 
+        if hasattr(self, 'viewing_separator'):
+            self.viewing_separator.destroy()
+            del self.viewing_separator
+
         if hasattr(self, 'viewing_widgets_label'):
             self.viewing_widgets_label.destroy()
             del self.viewing_widgets_label
+
+        if hasattr(self, 'tool_separator'):
+            self.tool_separator.destroy()
+            del self.tool_separator
 
         if hasattr(self, 'annotation_tool_label'):
             self.annotation_tool_label.destroy()
@@ -162,6 +175,118 @@ class MRIAnnotationTool:
             self.choose_pen_size_scale.destroy()
             del self.choose_pen_size_scale
 
+        if hasattr(self, 'saving_separator'):
+            self.saving_separator.destroy()
+            del self.saving_separator
+        
+        if hasattr(self, 'saving_label'):
+            self.saving_label.destroy()
+            del self.saving_label
+        
+        if hasattr(self, 'save_annotations_button'):
+            self.save_annotations_button.destroy()
+            del self.save_annotations_button
+        
+        if hasattr(self, 'lesion_separator'):
+            self.lesion_separator.destroy()
+            del self.lesion_separator
+        
+        if hasattr(self, 'select_lesion_label'):
+            self.select_lesion_label.destroy()
+            del self.select_lesion_label
+        
+        if hasattr(self, 'select_lesion_combobox'):
+            self.select_lesion_combobox.destroy()
+            del self.select_lesion_combobox
+        
+        if hasattr(self, 'load_lesion_button'):
+            self.load_lesion_button.destroy()
+            del self.load_lesion_button
+        
+        if hasattr(self, 't2w_separator'):
+            self.t2w_separator.destroy()
+            del self.t2w_separator
+        
+        if hasattr(self, 't2_weighted_imaging_label'):
+            self.t2_weighted_imaging_label.destroy()
+            del self.t2_weighted_imaging_label
+        
+        if hasattr(self, 't2w_peripheral_zone_label'):
+            self.t2w_peripheral_zone_label.destroy()
+            del self.t2w_peripheral_zone_label
+        
+        if hasattr(self, 't2w_peripheral_zone_combobox'):
+            self.t2w_peripheral_zone_combobox.destroy()
+            del self.t2w_peripheral_zone_combobox
+        
+        if hasattr(self, 't2w_transition_zone_label'):
+            self.t2w_transition_zone_label.destroy()
+            del self.t2w_transition_zone_label
+        
+        if hasattr(self, 't2w_transition_zone_combobox'):
+            self.t2w_transition_zone_combobox.destroy()
+            del self.t2w_transition_zone_combobox
+        
+        if hasattr(self, 'dwi_top_separator'):
+            self.dwi_top_separator.destroy()
+            del self.dwi_top_separator
+        
+        if hasattr(self, 'diffusion_weighted_imaging_label'):
+            self.diffusion_weighted_imaging_label.destroy()
+            del self.diffusion_weighted_imaging_label
+        
+        if hasattr(self, 'diffusion_weighted_peripheral_zone_label'):
+            self.diffusion_weighted_peripheral_zone_label.destroy()
+            del self.diffusion_weighted_peripheral_zone_label
+        
+        if hasattr(self, 'diffusion_weighted_peripheral_zone_combobox'):
+            self.diffusion_weighted_peripheral_zone_combobox.destroy()
+            del self.diffusion_weighted_peripheral_zone_combobox
+        
+        if hasattr(self, 'diffusion_weighted_transition_zone_label'):
+            self.diffusion_weighted_transition_zone_label.destroy()
+            del self.diffusion_weighted_transition_zone_label
+        
+        if hasattr(self, 'diffusion_weighted_transition_zone_combobox'):
+            self.diffusion_weighted_transition_zone_combobox.destroy()
+            del self.diffusion_weighted_transition_zone_combobox
+        
+        if hasattr(self, 'dynamic_contrast_enhanced_imaging_separator'):
+            self.dynamic_contrast_enhanced_imaging_separator.destroy()
+            del self.dynamic_contrast_enhanced_imaging_separator
+        
+        if hasattr(self, 'dynamic_contrast_enhanced_imaging_label'):
+            self.dynamic_contrast_enhanced_imaging_label.destroy()
+            del self.dynamic_contrast_enhanced_imaging_label
+        
+        if hasattr(self, 'dynamic_contrast_enhanced_imaging_combobox'):
+            self.dynamic_contrast_enhanced_imaging_combobox.destroy()
+            del self.dynamic_contrast_enhanced_imaging_combobox
+        
+        if hasattr(self, 'pirads_score_separator'):
+            self.pirads_score_separator.destroy()
+            del self.pirads_score_separator
+
+        if hasattr(self, 'pirads_scores_label'):
+            self.pirads_scores_label.destroy()
+            del self.pirads_scores_label
+        
+        if hasattr(self, 'pirad_score_combobox'):
+            self.pirad_score_combobox.destroy()
+            del self.pirad_score_combobox
+        
+        if hasattr(self, 'additional_comments_separator'):
+            self.additional_comments_separator.destroy()
+            del self.additional_comments_separator
+        
+        if hasattr(self, 'additional_comments_label'):
+            self.additional_comments_label.destroy()
+            del self.additional_comments_label
+        
+        if hasattr(self, 'additional_comments_textbox'):
+            self.additional_comments_textbox.destroy()
+            del self.additional_comments_textbox
+        
         if self.scans_collective:
             self.current_scan = self.scans_collective[0]
 
@@ -170,10 +295,8 @@ class MRIAnnotationTool:
                 del self.no_scans_label
 
             scan_arr = mpimg.imread(self.current_scan)
-
             # Get the actual size of the image
             actual_height, actual_width = scan_arr.shape
-
             # Create a figure and subplot for displaying scans
             self.f = Figure(figsize=(actual_width / 100, actual_height / 100), dpi=120)
             self.a = self.f.add_subplot(111)
@@ -181,16 +304,13 @@ class MRIAnnotationTool:
             # Set aspect ratio to 'equal' to display the image in its actual size
             self.a.imshow(scan_arr, cmap='gray', aspect='equal')
             self.a.axis('off')
-
             # Remove extra whitespace around the image
             self.f.subplots_adjust(left=0, right=1, top=1, bottom=0)
 
             # Create a frame for the canvas
             self.canvas_frame = tk.Frame(self.viewer_frame)
             self.canvas_frame.grid(row=1, column=0, padx=(0, 0), pady=(10, 0))
-
             self.canvas = FigureCanvasTkAgg(self.f, self.canvas_frame)
-
             # Set canvas width and height
             self.canvas_width, self.canvas_height = self.f.get_size_inches() * self.f.dpi
 
@@ -205,51 +325,113 @@ class MRIAnnotationTool:
             self.canvas.draw()
             self.canvas.get_tk_widget().grid(row=2, column=0, padx=(0, 0))
 
-            # Load annotations for the initial scan
+            # Load annotations and PI-RADS for the initial scan
             json_file_path = os.path.join("saved_scans", f"{self.current_opened_scan}", f"{self.current_opened_scan}_annotation_information.json")
             self.load_annotations_from_json(json_file_path)
 
             # Override the home method to use custom reset_zoom
             self.toolbar_home = self.reset_zoom
             self.toolbar_frame = ttk.Frame(self.viewer_frame)
-
             self.scan_scale = ttk.Scale(self.viewer_frame, orient="horizontal", from_=1, to=len(self.scans_collective), command=self.next_scan)
             self.scan_scale.grid(row=2, column=0, padx=(50,0))
 
             # Create Viewing Widgets
-            self.viewing_widgets_label = ttk.Label(self.tool_frame, text="     Viewing\nFunctionality")
-            self.viewing_widgets_label.grid(row=7, column=0, padx=(30,0), pady=(30,0))
+            self.viewing_separator = ttk.Separator(self.tool_frame, orient="horizontal")
+            self.viewing_separator.grid(row=8, column=0, columnspan=4, ipadx=70, padx=(20,0), pady=(20,0))
+            self.viewing_widgets_label = ttk.Label(self.tool_frame, text="     Viewing\nFunctionality:")
+            self.viewing_widgets_label.grid(row=9, column=0, padx=(40,0), pady=(10,0))
             self.reset_view_button = ttk.Button(self.tool_frame, text="Reset", command=self.reset_view)
-            self.reset_view_button.grid(row=8, column=0, padx=(30, 0))
+            self.reset_view_button.grid(row=10, column=0, padx=(40, 0))
             self.zoom_button = ttk.Button(self.tool_frame, text="Zoom", command=self.activate_zoom)
-            self.zoom_button.grid(row=9, column=0, padx=(30,0))
+            self.zoom_button.grid(row=11, column=0, padx=(40,0))
             self.coordinates_label = ttk.Label(self.viewer_frame, text="Coordinates: (0, 0)", font=("Calibri", 12))
-            self.coordinates_label.grid(row=2, column=0, padx=(0, 310))
-            self.save_annotations_button = ttk.Button(self.tool_frame, text="Save", command=self.save_annotations)
-            self.save_annotations_button.grid(row=10, column=0, padx=(30,0))
+            self.coordinates_label.grid(row=12, column=0, padx=(0, 310))
+
+            # Save Widget
+            self.saving_separator = ttk.Separator(self.tool_frame, orient="horizontal")
+            self.saving_separator.grid(row=13, column=0, columnspan=4, ipadx=70, padx=(10,0), pady=(20,0))
+            self.saving_label = ttk.Label(self.tool_frame, text="     Saving\nFunctionality:")
+            self.saving_label.grid(row=14, column=0, padx=(40,0), pady=(10,0))
+            self.save_annotations_button = ttk.Button(self.tool_frame, text="Save", command=lambda:self.save_current_opened_lesion_pirads(self.current_opened_lesion))
+            self.save_annotations_button.grid(row=15, column=0, padx=(40,0))
 
             # Annotation Tools Widgets
+            self.tool_separator = ttk.Separator(self.tool_frame, orient="horizontal")
+            self.tool_separator.grid(row=1, column=0, columnspan=4, ipadx=70, padx=(20,0), pady=(10,0))
             self.annotation_tool_label = ttk.Label(self.tool_frame, text="Annotation\n     Tools:", font=("Calibri", 14))
-            self.annotation_tool_label.grid(row=1, column=0, padx=(30, 0), pady=(25, 0))
+            self.annotation_tool_label.grid(row=2, column=0, padx=(40, 0), pady=(5, 0))
             self.drawing_button = ttk.Button(self.tool_frame, text="Pen", command=self.activate_drawing)
-            self.drawing_button.grid(row=2, column=0, padx=(30, 0), pady=(0,0))
+            self.drawing_button.grid(row=3, column=0, padx=(40, 0), pady=(0,0))
             self.colour_button = ttk.Button(self.tool_frame, text="Colour", command=self.choose_colour)
-            self.colour_button.grid(row=3, column=0, padx=(30, 0), pady=(0,0))
+            self.colour_button.grid(row=4, column=0, padx=(40, 0), pady=(0,0))
             self.undo_button = ttk.Button(self.tool_frame, text="Undo", command=self.activate_undo)
-            self.undo_button.grid(row=4, column=0, padx=(30, 0), pady=(0,0))
+            self.undo_button.grid(row=5, column=0, padx=(40, 0), pady=(0,0))
             self.choose_pen_size_label = ttk.Label(self.tool_frame, text="Pen Size:", font=("Calibri", 12))
-            self.choose_pen_size_label.grid(row=5, column=0, padx=(30, 0), pady=(0,0))
+            self.choose_pen_size_label.grid(row=6, column=0, padx=(40, 0), pady=(0,0))
             self.choose_pen_size_scale = tk.Scale(self.tool_frame, from_=1, to=10, orient='horizontal', command=self.update_pen_size, showvalue=False)
             self.choose_pen_size_scale.set(self.line_width)
-            self.choose_pen_size_scale.grid(row=6, column=0, padx=(30, 0), pady=(0,0))                  
+            self.choose_pen_size_scale.grid(row=7, column=0, padx=(40, 0), pady=(0,0))    
+
+            # PI-RADS AND Lesions Forms Widgets      
+            self.lesion_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
+            self.lesion_separator.grid(row=1, column=0, columnspan=4, ipadx=120, pady=(10,0))  
+            self.select_lesion_label = ttk.Label(self.pirad_frame, text="Select \nLesion:", font=("Calibri", 14))        
+            self.select_lesion_label.grid(row=2, column=0, padx=(0, 205), pady=(10, 0))         
+            self.select_lesion_combobox = ttk.Combobox(self.pirad_frame, values=self.current_lesions_used, state="readonly", width=7)
+            self.select_lesion_combobox.grid(row=2, column=0, padx=(0, 50), pady=(10, 0))
+            self.load_lesion_button = ttk.Button(self.pirad_frame, text="Load", command=lambda:self.load_chosen_lesion_pirad_information(self.select_lesion_combobox.get()))
+            self.load_lesion_button.grid(row=2, column=0, padx=(140, 0), pady=(10, 0))
+            self.t2w_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
+            self.t2w_separator.grid(row=3, column=0,columnspan=4, ipadx=120, pady=(10,0))  
+            self.t2w_and_dwi_values = ["1", "2", "3", "4", "5"]
+            self.t2_weighted_imaging_label = ttk.Label(self.pirad_frame, text="T2 Weighted Imgaing (T2W):", font=("Calibri", 13))        
+            self.t2_weighted_imaging_label.grid(row=4, column=0, padx=(0, 75), pady=(10, 0))
+            self.t2w_peripheral_zone_label = ttk.Label(self.pirad_frame, text="T2W Peripheral Zone:", font=("Calibri", 12))  
+            self.t2w_peripheral_zone_label.grid(row=5, column=0, padx=(0, 100), pady=(0, 0))
+            self.t2w_peripheral_zone_combobox = ttk.Combobox(self.pirad_frame, values=self.t2w_and_dwi_values, state="readonly", width=5)
+            self.t2w_peripheral_zone_combobox.grid(row=6, column=0, padx=(0, 155), pady=(0, 0))
+            self.t2w_transition_zone_label = ttk.Label(self.pirad_frame, text="T2W Transition Zone:", font=("Calibri", 12))  
+            self.t2w_transition_zone_label.grid(row=7, column=0, padx=(0, 100), pady=(0, 0))
+            self.t2w_transition_zone_combobox = ttk.Combobox(self.pirad_frame, values=self.t2w_and_dwi_values, state="readonly", width=5)
+            self.t2w_transition_zone_combobox.grid(row=8, column=0, padx=(0, 155), pady=(0, 0))
+            self.dwi_top_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
+            self.dwi_top_separator.grid(row=9, column=0,columnspan=4, ipadx=120, pady=(10,0))  
+            self.diffusion_weighted_imaging_label = ttk.Label(self.pirad_frame, text="Diffusion Weighted Imaging (DWI):", font=("Calibri", 13))        
+            self.diffusion_weighted_imaging_label.grid(row=10, column=0, padx=(0, 40), pady=(10, 0))
+            self.diffusion_weighted_peripheral_zone_label = ttk.Label(self.pirad_frame, text="DWI Peripheral Zone:", font=("Calibri", 12))  
+            self.diffusion_weighted_peripheral_zone_label.grid(row=11, column=0, padx=(0, 100), pady=(0, 0))
+            self.diffusion_weighted_peripheral_zone_combobox = ttk.Combobox(self.pirad_frame, values=self.t2w_and_dwi_values, state="readonly", width=5)
+            self.diffusion_weighted_peripheral_zone_combobox.grid(row=12, column=0, padx=(0, 155), pady=(0, 0))
+            self.diffusion_weighted_transition_zone_label = ttk.Label(self.pirad_frame, text="DWI Transition Zone:", font=("Calibri", 12))  
+            self.diffusion_weighted_transition_zone_label.grid(row=13, column=0, padx=(0, 100), pady=(0, 0))
+            self.diffusion_weighted_transition_zone_combobox = ttk.Combobox(self.pirad_frame, values=self.t2w_and_dwi_values, state="readonly", width=5)
+            self.diffusion_weighted_transition_zone_combobox.grid(row=14, column=0, padx=(0, 155), pady=(0, 0))
+            self.dynamic_contrast_enhanced_imaging_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
+            self.dynamic_contrast_enhanced_imaging_separator.grid(row=15, column=0,columnspan=4, ipadx=120, pady=(10,0)) 
+            self.dynamic_contrast_enhanced_imaging_label = ttk.Label(self.pirad_frame, text="Dynamic Contrast Enhanced \nImaging (DCE):", font=("Calibri", 13))        
+            self.dynamic_contrast_enhanced_imaging_label.grid(row=16, column=0, padx=(0, 75), pady=(10, 0))
+            self.dynamic_contrast_enhanced_imaging_values = ["Positive", "Negative"]
+            self.dynamic_contrast_enhanced_imaging_combobox = ttk.Combobox(self.pirad_frame, values=self.dynamic_contrast_enhanced_imaging_values, state="readonly", width=8)
+            self.dynamic_contrast_enhanced_imaging_combobox.grid(row=17, column=0, padx=(0, 155), pady=(0, 0))
+            self.pirads_score_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
+            self.pirads_score_separator.grid(row=18, column=0,columnspan=4, ipadx=120, pady=(10,0))
+            self.pirads_scores_label = ttk.Label(self.pirad_frame, text="PI-RADS Score:", font=("Calibri", 13))        
+            self.pirads_scores_label.grid(row=19, column=0, padx=(0, 153), pady=(10, 0))
+            self.pirads_scores_values = ["1 (Very Low, Cancer is highly unlikely)", "2 (Low, Cancer is unlikely)", "3 (Intermediate, Cancer is equivocal)", "4 (High, Cancer is likely)", "5 (Very High, Cancer is highly likely)"]
+            self.pirad_score_combobox = ttk.Combobox(self.pirad_frame, values=self.pirads_scores_values, state="readonly", width=26)
+            self.pirad_score_combobox.grid(row=20, column=0, padx=(0, 0), pady=(0, 0))
+            self.additional_comments_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
+            self.additional_comments_separator.grid(row=21, column=0,columnspan=4, ipadx=120, pady=(10,0))
+            self.additional_comments_label = ttk.Label(self.pirad_frame, text="Additional Comments:", font=("Calibri", 13))        
+            self.additional_comments_label.grid(row=22, column=0, padx=(0, 120), pady=(5, 0))
+            self.additional_comments_textbox = tk.Text(self.pirad_frame, height=8, width=35)
+            self.additional_comments_textbox.grid(row=23, column=0, padx=(0,0), pady=(0,10))
 
             # Create a new toolbar instance
             self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
             self.toolbar.update()
-
             # Initialize a variable to track the zoom rectangle state
             self.zoom_rectangle_active = False
-
             # Flag to track the source of the zoom
             self.zoom_source = None
         else:
@@ -270,6 +452,15 @@ class MRIAnnotationTool:
         # Load annotations for the initial scan
         json_file_path = os.path.join("saved_scans", f"{self.current_opened_scan}", f"{self.current_opened_scan}_annotation_information.json")
         self.load_annotations_from_json(json_file_path)
+        self.select_lesion_combobox.set('')
+        self.select_lesion_combobox['values'] = self.current_lesions_used
+        self.t2w_peripheral_zone_combobox.set('')
+        self.t2w_transition_zone_combobox.set('')
+        self.diffusion_weighted_peripheral_zone_combobox.set('')
+        self.diffusion_weighted_transition_zone_combobox.set('')
+        self.dynamic_contrast_enhanced_imaging_combobox.set('')
+        self.pirad_score_combobox.set('')
+        self.additional_comments_textbox.delete('1.0', 'end')
 
     def reset_view(self):
     # Get the current NavigationToolbar2Tk instance
@@ -316,13 +507,10 @@ class MRIAnnotationTool:
     def activate_undo(self):
         if self.drawing_active:
             self.drawing_active = False
-    
         if self.zoom_active:
             self.activate_zoom(deactivate=True)
-
         # Toggle the undo_active state
         self.undo_active = not self.undo_active
-
        # Check the undo activation state and update the button and label accordingly
         if self.undo_active:
             self.active_button = self.undo_button
@@ -439,6 +627,9 @@ class MRIAnnotationTool:
                 self.drawing = True
                 # Start a new list for the current sequence of lines
                 self.current_annotations = []
+                self.next_lesion_number = self.get_next_lesion_number()
+                self.create_pirads_form(self.next_lesion_number)
+                self.select_lesion_combobox['values'] = self.current_lesions_used
             elif self.active_button == self.zoom_button and event.button == 1:
                 self.zoom_source = "button"
             elif self.active_button == self.undo_button and event.button == 1:
@@ -469,17 +660,29 @@ class MRIAnnotationTool:
                 if event.button == 1 and self.prev_x is not None and self.prev_y is not None:
                     # Check if the line is entirely within the canvas boundaries
                     if 0 <= self.prev_x < self.canvas_width and 0 <= self.prev_y < self.canvas_height:
-                        # Draw a line and add it to the current list of lines
                         chosen_colour = self.chosencolour
                         chosen_width = self.line_width
-                        line = self.a.plot([self.prev_x, x], [self.prev_y, y], linewidth=chosen_width, color=chosen_colour)[0]
+                        line = self.a.plot([self.prev_x, x], [self.prev_y, y], linewidth=chosen_width, color=chosen_colour, label=self.next_lesion_number)[0]
                         line.set_color(chosen_colour)
                         line.set_linewidth(chosen_width)
                         self.current_annotations.append(line)
-
                 self.canvas.draw()
                 self.prev_x, self.prev_y = x, y
+                # Add additional metadata at the folder level
 
+    def get_next_lesion_number(self):
+        if not self.current_lesions_used:
+            # Handle the case where the list is empty
+            next_available_lesion = "lesion-1"
+        else:
+            used_numbers = [int(lesion.split('-')[1]) for lesion in self.current_lesions_used]
+            # Find the first gap in the sequence of numbers
+            next_available_number = next((i for i in range(1, max(used_numbers) + 2) if i not in used_numbers), None)
+            # Form the next available lesion number
+            next_available_lesion = f"lesion-{next_available_number}" if next_available_number is not None else None
+        self.current_lesions_used.append(next_available_lesion)
+        return next_available_lesion
+    
     def update_pen_size(self, value):
         # Update the line width when the scale is changed
         self.line_width = int(value)
@@ -506,40 +709,48 @@ class MRIAnnotationTool:
                             line_x, line_y = line.get_xdata(), line.get_ydata()
                             line_coords = np.column_stack((line_x, line_y))
                             line_coords_pixels = self.a.transData.transform(line_coords)
-
                             # Check if the click is on the line
                             if np.any(np.abs(line_coords_pixels[:, 0] - event.x) < 3) and np.any(
                                     np.abs(line_coords_pixels[:, 1] - event.y) < 3):
                                 # Remove the entire sequence of lines
                                 for line_to_remove in sequence:
                                     line_to_remove.remove()
+                                lesion_number = line.get_label()
                                 # Remove the entire sequence from the all_annotations list
-                                self.remove_sequence(sequence)
-
+                                self.remove_sequence(sequence, lesion_number)
+                                self.delete_lesion_pirad_form(lesion_number)
                                 # Disconnect the delete_selected_line method from the mouse click event
                                 if hasattr(self, 'undo_callback_id') and self.undo_callback_id:
                                     self.canvas.mpl_disconnect(self.undo_callback_id)
                                     self.undo_callback_id = None
-
                                 return  # No need to check other lines
-
                     # If the click is not on any line, clear the current lines list
                     self.current_annotations = []
                     self.canvas.draw()
+    
+    def delete_lesion_pirad_form(self, lesion_to_remove):
+        for entry in self.all_lesions_information:
+            if entry['lesion-id'] == lesion_to_remove:
+                print(lesion_to_remove)
+                self.current_lesions_used = [lesion_id for lesion_id in self.current_lesions_used if lesion_id != lesion_to_remove]
+                self.all_lesions_information.remove(entry)
+                self.select_lesion_combobox['values'] = self.current_lesions_used
+                break
         
-    def remove_sequence(self, sequence_to_remove):
+    def remove_sequence(self, sequence_to_remove, lesion_to_remove):
         # Create a new list without the specified sequence
         self.all_annotations = [sequence for sequence in self.all_annotations if sequence != sequence_to_remove]
-
+        self.current_lesions_used.remove(lesion_to_remove)
         # Clear the current lines list
         self.current_annotations = []
-
         # Redraw the canvas
         self.canvas.draw()
     
     def load_annotations_from_json(self, filename):
         self.all_annotations.clear()
         self.current_annotations.clear()
+        self.all_lesions_information.clear()
+        self.current_lesions_used.clear()
 
         with open(filename, 'r') as json_file:
             data = json.load(json_file)
@@ -547,7 +758,6 @@ class MRIAnnotationTool:
         # Filter data for the currently opened scan
         current_scan_id = os.path.basename(self.current_scan)
         current_scan_data = [entry for entry in data if entry.get("scan_id") == current_scan_id]
-
         for sequence_data in current_scan_data:
             sequence_lines = []
             for annotation_list in sequence_data.get("coordinates", []):
@@ -557,18 +767,18 @@ class MRIAnnotationTool:
                     ydata = np.array(line_data['y'])
                     line_colour = line_data['colour']
                     line_width = line_data['width']
-                    line = mlines.Line2D(xdata, ydata, linewidth=line_width, color=line_colour)
+                    lesion_number = line_data['lesion_number']
+                    line = mlines.Line2D(xdata, ydata, linewidth=line_width, color=line_colour, label=lesion_number)
                     annotation_lines.append(line)
                 
                 if annotation_lines:
                     sequence_lines.append(annotation_lines)
-
+                self.current_lesions_used.append(lesion_number)
             if sequence_lines:
                 self.all_annotations.extend(sequence_lines)
-
         # Redraw the canvas
+        self.load_pirads_information(current_scan_data)
         self.redraw_canvas()
-
 
     def redraw_canvas(self):
          # Check if canvas is initialized
@@ -581,11 +791,34 @@ class MRIAnnotationTool:
             for sequence in self.all_annotations:
                 for line in sequence:
                     self.a.add_line(line)
-
             # Redraw the canvas
             self.canvas.draw()
         else:
             return
+    
+    def save_current_opened_lesion_pirads(self, current_lesion):
+        if current_lesion:
+            selected_lesion_index = next((index for index, lesion in enumerate(self.all_lesions_information) if lesion["lesion-id"] == current_lesion), None)
+            if selected_lesion_index is not None:
+                if (self.t2w_peripheral_zone_combobox.get() == " " or self.t2w_transition_zone_combobox.get() == " " or self.diffusion_weighted_peripheral_zone_combobox.get() == " " or self.diffusion_weighted_transition_zone_combobox.get() == " " or self.dynamic_contrast_enhanced_imaging_combobox.get() == " " or self.pirad_score_combobox.get() == " "):
+                    messagebox.showerror('Error', "Make sure all fields of PI-RADS form are filled")
+                else:
+                    # Update the selected lesion with the modified information
+                    self.all_lesions_information[selected_lesion_index]["T2W Peripheral Zone"] = self.t2w_peripheral_zone_combobox.get()
+                    self.all_lesions_information[selected_lesion_index]["T2W Transition Zone"] = self.t2w_transition_zone_combobox.get()
+                    self.all_lesions_information[selected_lesion_index]["DWI Peripheral Zone"] = self.diffusion_weighted_peripheral_zone_combobox.get()
+                    self.all_lesions_information[selected_lesion_index]["DWI Transition Zone"] = self.diffusion_weighted_transition_zone_combobox.get()
+                    self.all_lesions_information[selected_lesion_index]["Dynamic Contrast Enhanced Imaging (DCE)"] = self.dynamic_contrast_enhanced_imaging_combobox.get()
+                    self.all_lesions_information[selected_lesion_index]["PI-RADS Score"] = self.pirad_score_combobox.get()
+                    additional_comments_text = self.additional_comments_textbox.get(1.0, tk.END).strip()
+                    self.all_lesions_information[selected_lesion_index]["Additional Comments"] = additional_comments_text
+
+                    # Save the modified information back to the JSON file or your data storage mechanism
+                    self.save_annotations()
+                    self.save_pirads_information()
+        else:
+            self.save_annotations()
+            self.save_pirads_information()
 
     def save_annotations(self):
         # Get the scan ID from the current scan file
@@ -595,43 +828,101 @@ class MRIAnnotationTool:
         # Read the existing JSON data from the file
         with open(json_file_path, 'r') as json_file:
             existing_data = json.load(json_file)
-
         # Remove existing annotations for the current scan_id
         for entry in existing_data:
             if entry["scan_id"] == scan_to_save:
                 entry["coordinates"] = []
                 break  # Stop searching once the entry is found
-
         # Save the updated data back to the JSON file
         with open(json_file_path, 'w') as json_file:
             json.dump(existing_data, json_file)
-        
         if self.all_annotations:
-            data_to_save = []
+            coordinate_data_to_save = []
             # Add the new annotations for the current scan_id
             for sequence in self.all_annotations:
                 sequence_data = []
                 for line in sequence:
                     xdata, ydata = line.get_xdata(), line.get_ydata()
                     chosen_colour, chosen_width = line.get_color(), line.get_linewidth()
+                    lesion_number = line.get_label()
                     xdata_np, ydata_np = np.array(xdata), np.array(ydata)
-                    line_data = {'x': xdata_np.tolist(), 'y': ydata_np.tolist(), 'colour': chosen_colour, 'width': chosen_width}
+                    line_data = {'x': xdata_np.tolist(), 'y': ydata_np.tolist(), 'colour': chosen_colour, 'width': chosen_width, 'lesion_number': lesion_number}
                     sequence_data.append(line_data)
-                data_to_save.append(sequence_data)
-
+                coordinate_data_to_save.append(sequence_data)
             # Find the entry with the matching scan_id
             for entry in existing_data:
                 if entry["scan_id"] == scan_to_save:
                     # Update the coordinates field with the new data
-                    entry["coordinates"] = data_to_save
+                    entry["coordinates"] = coordinate_data_to_save
                     break  # Stop searching once the entry is found
-
             # Save the updated annotations to the JSON file
             with open(json_file_path, 'w') as json_file:
                 json.dump(existing_data, json_file)
-
         # Redraw the canvas
         self.redraw_canvas()
+
+
+    def create_pirads_form(self, lesion_number):
+        pirads_form_information = {
+            "lesion-id": lesion_number, 
+            "T2W Peripheral Zone": " ",
+            "T2W Transition Zone": " ",
+            "DWI Peripheral Zone": " ",
+            "DWI Transition Zone": " ",
+            "Dynamic Contrast Enhanced Imaging (DCE)": " ",
+            "PI-RADS Score": " ",
+            "Additional Comments": " "
+        }
+        self.all_lesions_information.append(pirads_form_information)
+
+    def load_chosen_lesion_pirad_information(self, lesion_to_load):
+        if lesion_to_load:
+            # Find the selected lesion in self.all_lesions_information
+            selected_lesion = next((lesion for lesion in self.all_lesions_information if lesion["lesion-id"] == lesion_to_load), None)
+            if selected_lesion:
+                self.t2w_peripheral_zone_combobox.set(selected_lesion.get("T2W Peripheral Zone", ""))
+                self.t2w_transition_zone_combobox.set(selected_lesion.get("T2W Transition Zone", ""))
+                self.diffusion_weighted_peripheral_zone_combobox.set(selected_lesion.get("DWI Peripheral Zone", ""))
+                self.diffusion_weighted_transition_zone_combobox.set(selected_lesion.get("DWI Transition Zone", ""))
+                self.dynamic_contrast_enhanced_imaging_combobox.set(selected_lesion.get("Dynamic Contrast Enhanced Imaging (DCE)", ""))
+                self.pirad_score_combobox.set(selected_lesion.get("PI-RADS Score", ""))
+                additional_comments_text = selected_lesion.get("Additional Comments", "")
+                self.additional_comments_textbox.delete(1.0, tk.END)  # Clear existing text
+                self.additional_comments_textbox.insert(tk.END, additional_comments_text)
+                self.current_opened_lesion = lesion_to_load
+        else:
+            messagebox.showerror('Error', 'Select a lesion to load')
+
+    def load_pirads_information(self, current_scan_data):
+        for entry in current_scan_data:
+            lesion_information = entry.get("lesion_information", [])
+        # Adding lesion information to self.all_lesion_information using lesion ID as key
+        for lesion_info in lesion_information:
+            self.all_lesions_information.append(lesion_info)
+    
+    def save_pirads_information(self):
+        scan_to_save = os.path.basename(self.current_scan)
+        json_file_path = os.path.join("saved_scans", f"{self.current_opened_scan}", f"{self.current_opened_scan}_annotation_information.json")
+        # Read the existing JSON data from the file
+        with open(json_file_path, 'r') as json_file:
+            existing_data = json.load(json_file)
+        for entry in existing_data:
+            if entry["scan_id"] == scan_to_save:
+                # Update the "lesion_information" field with the information from self.all_lesion_information
+                entry["lesion_information"] = []
+                break
+        # Save the updated data back to the JSON file
+        with open(json_file_path, 'w') as json_file:
+            json.dump(existing_data, json_file)
+        # Iterate through existing_data to find the entry for the specified scan ID
+        for entry in existing_data:
+            if entry["scan_id"] == scan_to_save:
+                # Update the "lesion_information" field with the information from self.all_lesion_information
+                entry["lesion_information"] = self.all_lesions_information
+                break
+        # Save the updated data back to the JSON file
+        with open(json_file_path, 'w') as json_file:
+            json.dump(existing_data, json_file)
     #End of Main Menu Display Viewer Code
 
     #Following code is the start for the Display Scans
@@ -759,6 +1050,7 @@ class MRIAnnotationTool:
                             scan_data.append({
                                 'scan_id': f"{instance_number - 1:04d}.png",
                                 'coordinates': [],  # Placeholder for coordinates (to be collected during annotation)
+                                'lesion_information': [] # Placeholder for lesion information
                             })
                         
                         # Save scan data to JSON file
@@ -859,7 +1151,7 @@ class MRIAnnotationTool:
                             self.canvas_frame.destroy()
                             del self.canvas_frame
 
-                        if hasattr(self, 'canvas'):
+                        if hasattr(self, 'canvas') and self.canvas:
                             self.canvas.get_tk_widget().destroy()
                             del self.canvas
 
@@ -887,9 +1179,17 @@ class MRIAnnotationTool:
                             self.toolbar.destroy()
                             del self.toolbar
 
+                        if hasattr(self, 'viewing_separator'):
+                            self.viewing_separator.destroy()
+                            del self.viewing_separator
+
                         if hasattr(self, 'viewing_widgets_label'):
                             self.viewing_widgets_label.destroy()
                             del self.viewing_widgets_label
+
+                        if hasattr(self, 'tool_separator'):
+                            self.tool_separator.destroy()
+                            del self.tool_separator
 
                         if hasattr(self, 'annotation_tool_label'):
                             self.annotation_tool_label.destroy()
@@ -914,6 +1214,118 @@ class MRIAnnotationTool:
                         if hasattr(self, 'choose_pen_size_scale'):
                             self.choose_pen_size_scale.destroy()
                             del self.choose_pen_size_scale
+
+                        if hasattr(self, 'saving_separator'):
+                            self.saving_separator.destroy()
+                            del self.saving_separator
+                        
+                        if hasattr(self, 'saving_label'):
+                            self.saving_label.destroy()
+                            del self.saving_label
+                        
+                        if hasattr(self, 'save_annotations_button'):
+                            self.save_annotations_button.destroy()
+                            del self.save_annotations_button
+                        
+                        if hasattr(self, 'lesion_separator'):
+                            self.lesion_separator.destroy()
+                            del self.lesion_separator
+                        
+                        if hasattr(self, 'select_lesion_label'):
+                            self.select_lesion_label.destroy()
+                            del self.select_lesion_label
+                        
+                        if hasattr(self, 'select_lesion_combobox'):
+                            self.select_lesion_combobox.destroy()
+                            del self.select_lesion_combobox
+                        
+                        if hasattr(self, 'load_lesion_button'):
+                            self.load_lesion_button.destroy()
+                            del self.load_lesion_button
+                        
+                        if hasattr(self, 't2w_separator'):
+                            self.t2w_separator.destroy()
+                            del self.t2w_separator
+                        
+                        if hasattr(self, 't2_weighted_imaging_label'):
+                            self.t2_weighted_imaging_label.destroy()
+                            del self.t2_weighted_imaging_label
+                        
+                        if hasattr(self, 't2w_peripheral_zone_label'):
+                            self.t2w_peripheral_zone_label.destroy()
+                            del self.t2w_peripheral_zone_label
+                        
+                        if hasattr(self, 't2w_peripheral_zone_combobox'):
+                            self.t2w_peripheral_zone_combobox.destroy()
+                            del self.t2w_peripheral_zone_combobox
+                        
+                        if hasattr(self, 't2w_transition_zone_label'):
+                            self.t2w_transition_zone_label.destroy()
+                            del self.t2w_transition_zone_label
+                        
+                        if hasattr(self, 't2w_transition_zone_combobox'):
+                            self.t2w_transition_zone_combobox.destroy()
+                            del self.t2w_transition_zone_combobox
+                        
+                        if hasattr(self, 'dwi_top_separator'):
+                            self.dwi_top_separator.destroy()
+                            del self.dwi_top_separator
+                        
+                        if hasattr(self, 'diffusion_weighted_imaging_label'):
+                            self.diffusion_weighted_imaging_label.destroy()
+                            del self.diffusion_weighted_imaging_label
+                        
+                        if hasattr(self, 'diffusion_weighted_peripheral_zone_label'):
+                            self.diffusion_weighted_peripheral_zone_label.destroy()
+                            del self.diffusion_weighted_peripheral_zone_label
+                        
+                        if hasattr(self, 'diffusion_weighted_peripheral_zone_combobox'):
+                            self.diffusion_weighted_peripheral_zone_combobox.destroy()
+                            del self.diffusion_weighted_peripheral_zone_combobox
+                        
+                        if hasattr(self, 'diffusion_weighted_transition_zone_label'):
+                            self.diffusion_weighted_transition_zone_label.destroy()
+                            del self.diffusion_weighted_transition_zone_label
+                        
+                        if hasattr(self, 'diffusion_weighted_transition_zone_combobox'):
+                            self.diffusion_weighted_transition_zone_combobox.destroy()
+                            del self.diffusion_weighted_transition_zone_combobox
+                        
+                        if hasattr(self, 'dynamic_contrast_enhanced_imaging_separator'):
+                            self.dynamic_contrast_enhanced_imaging_separator.destroy()
+                            del self.dynamic_contrast_enhanced_imaging_separator
+                        
+                        if hasattr(self, 'dynamic_contrast_enhanced_imaging_label'):
+                            self.dynamic_contrast_enhanced_imaging_label.destroy()
+                            del self.dynamic_contrast_enhanced_imaging_label
+                        
+                        if hasattr(self, 'dynamic_contrast_enhanced_imaging_combobox'):
+                            self.dynamic_contrast_enhanced_imaging_combobox.destroy()
+                            del self.dynamic_contrast_enhanced_imaging_combobox
+                        
+                        if hasattr(self, 'pirads_score_separator'):
+                            self.pirads_score_separator.destroy()
+                            del self.pirads_score_separator
+
+                        if hasattr(self, 'pirads_scores_label'):
+                            self.pirads_scores_label.destroy()
+                            del self.pirads_scores_label
+                        
+                        if hasattr(self, 'pirad_score_combobox'):
+                            self.pirad_score_combobox.destroy()
+                            del self.pirad_score_combobox
+                        
+                        if hasattr(self, 'additional_comments_separator'):
+                            self.additional_comments_separator.destroy()
+                            del self.additional_comments_separator
+                        
+                        if hasattr(self, 'additional_comments_label'):
+                            self.additional_comments_label.destroy()
+                            del self.additional_comments_label
+                        
+                        if hasattr(self, 'additional_comments_textbox'):
+                            self.additional_comments_textbox.destroy()
+                            del self.additional_comments_textbox
 
                     shutil.rmtree(file_path_to_delete)
                     messagebox.showinfo("Deleted", f"{scan_folder_to_delete} has been successfully deleted")
