@@ -287,6 +287,10 @@ class MRIAnnotationTool:
             self.additional_comments_textbox.destroy()
             del self.additional_comments_textbox
         
+        if hasattr(self, 'toggle_lesion_button'):
+            self.toggle_lesion_button.destroy()
+            del self.toggle_lesion_button
+        
         if self.scans_collective:
             self.current_scan = self.scans_collective[0]
 
@@ -376,13 +380,15 @@ class MRIAnnotationTool:
             self.lesion_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
             self.lesion_separator.grid(row=1, column=0, columnspan=4, ipadx=120, pady=(10,0))  
             self.select_lesion_label = ttk.Label(self.pirad_frame, text="Select \nLesion:", font=("Calibri", 14))        
-            self.select_lesion_label.grid(row=2, column=0, padx=(0, 205), pady=(10, 0))         
+            self.select_lesion_label.grid(row=2, column=0, padx=(0, 205), pady=(0, 0))         
             self.select_lesion_combobox = ttk.Combobox(self.pirad_frame, values=self.current_lesions_used, state="readonly", width=7)
-            self.select_lesion_combobox.grid(row=2, column=0, padx=(0, 50), pady=(10, 0))
+            self.select_lesion_combobox.grid(row=2, column=0, padx=(0, 50), pady=(0, 0))
             self.load_lesion_button = ttk.Button(self.pirad_frame, text="Load", command=lambda:self.load_chosen_lesion_pirad_information(self.select_lesion_combobox.get()))
-            self.load_lesion_button.grid(row=2, column=0, padx=(140, 0), pady=(10, 0))
+            self.load_lesion_button.grid(row=2, column=0, padx=(140, 0), pady=(20, 0))
+            self.toggle_lesion_button = ttk.Button(self.pirad_frame, text="Toggle", command=lambda:self.toggle_lesion(self.select_lesion_combobox.get()))
+            self.toggle_lesion_button.grid(row=2, column=0, padx=(140, 0), pady=(0, 30))
             self.t2w_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
-            self.t2w_separator.grid(row=3, column=0,columnspan=4, ipadx=120, pady=(10,0))  
+            self.t2w_separator.grid(row=3, column=0,columnspan=4, ipadx=120, pady=(0,0))  
             self.t2w_and_dwi_values = ["1", "2", "3", "4", "5"]
             self.t2_weighted_imaging_label = ttk.Label(self.pirad_frame, text="T2 Weighted Imgaing (T2W):", font=("Calibri", 13))        
             self.t2_weighted_imaging_label.grid(row=4, column=0, padx=(0, 75), pady=(10, 0))
@@ -923,6 +929,37 @@ class MRIAnnotationTool:
         # Save the updated data back to the JSON file
         with open(json_file_path, 'w') as json_file:
             json.dump(existing_data, json_file)
+
+    def toggle_lesion(self, lesion_to_toggle):
+        if lesion_to_toggle:
+            selected_lines = []
+            for sequence in self.all_annotations:
+                for line in sequence:
+                    if line.get_label() == lesion_to_toggle:
+                        selected_lines.append(line)
+
+            # Toggle visibility
+            self.toggle_visibility(selected_lines)
+        else:
+            messagebox.showerror('Error', 'Select a lesion to toggle')
+
+    def toggle_visibility(self, lines_to_toggle):
+        # Toggle visibility of the selected lines
+        for line in lines_to_toggle:
+            current_visibility = line.get_visible()
+            line.set_visible(not current_visibility)
+
+        # Redraw the canvas
+        self.canvas.draw()
+        self.viewer_frame.after(200, lambda: self.restore_visibility(lines_to_toggle))
+
+    def restore_visibility(self, lines_to_restore):
+        # Restore visibility of the selected lines
+        for line in lines_to_restore:
+            line.set_visible(True)
+
+        # Redraw the canvas
+        self.canvas.draw()
     #End of Main Menu Display Viewer Code
 
     #Following code is the start for the Display Scans
@@ -1326,6 +1363,10 @@ class MRIAnnotationTool:
                         if hasattr(self, 'additional_comments_textbox'):
                             self.additional_comments_textbox.destroy()
                             del self.additional_comments_textbox
+                        
+                        if hasattr(self, 'toggle_lesion_button'):
+                            self.toggle_lesion_button.destroy()
+                            del self.toggle_lesion_button
 
                     shutil.rmtree(file_path_to_delete)
                     messagebox.showinfo("Deleted", f"{scan_folder_to_delete} has been successfully deleted")
