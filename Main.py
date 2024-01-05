@@ -310,6 +310,7 @@ class MRIAnnotationTool:
             self.a.axis('off')
             # Remove extra whitespace around the image
             self.f.subplots_adjust(left=0, right=1, top=1, bottom=0)
+            self.a.set_aspect('auto') 
 
             # Create a frame for the canvas
             self.canvas_frame = tk.Frame(self.viewer_frame)
@@ -454,6 +455,7 @@ class MRIAnnotationTool:
         self.a.clear()
         self.a.imshow(scan_arr, cmap='gray', aspect='equal')
         self.a.axis('off')
+        self.a.set_aspect('auto') 
 
         # Load annotations for the initial scan
         json_file_path = os.path.join("saved_scans", f"{self.current_opened_scan}", f"{self.current_opened_scan}_annotation_information.json")
@@ -479,6 +481,7 @@ class MRIAnnotationTool:
         scan_arr = mpimg.imread(self.current_scan)
         self.a.imshow(scan_arr, cmap='gray', aspect='equal')
         self.a.axis('off')
+        self.a.set_aspect('auto') 
 
         # Redraw all the lines from self.all_annotations excluding undone lines]
         for sequence in self.all_annotations:
