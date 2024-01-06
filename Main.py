@@ -637,8 +637,6 @@ class MRIAnnotationTool:
                 # Start a new list for the current sequence of lines
                 self.current_annotations = []
                 self.next_lesion_number = self.get_next_lesion_number()
-                self.create_pirads_form(self.next_lesion_number)
-                self.select_lesion_combobox['values'] = self.current_lesions_used
             elif self.active_button == self.zoom_button and event.button == 1:
                 self.zoom_source = "button"
             elif self.active_button == self.undo_button and event.button == 1:
@@ -651,10 +649,16 @@ class MRIAnnotationTool:
                 self.drawing = False
                 self.prev_x = None
                 self.prev_y = None
-
                 # Add the current list of lines to the list of all lines
                 if self.current_annotations:
                     self.all_annotations.append(self.current_annotations)
+                    self.create_pirads_form(self.next_lesion_number)
+                    self.select_lesion_combobox['values'] = self.current_lesions_used
+                else:
+                    if self.next_lesion_number in self.current_lesions_used:
+                        self.current_lesions_used.remove(self.next_lesion_number)
+            else:
+                return
 
     def draw_on_canvas(self, event):
         if event.name == 'motion_notify_event' and self.drawing:
@@ -740,7 +744,6 @@ class MRIAnnotationTool:
     def delete_lesion_pirad_form(self, lesion_to_remove):
         for entry in self.all_lesions_information:
             if entry['lesion-id'] == lesion_to_remove:
-                print(lesion_to_remove)
                 self.current_lesions_used = [lesion_id for lesion_id in self.current_lesions_used if lesion_id != lesion_to_remove]
                 self.all_lesions_information.remove(entry)
                 self.select_lesion_combobox['values'] = self.current_lesions_used
