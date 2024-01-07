@@ -625,7 +625,6 @@ class MRIAnnotationTool:
         # Redraw the canvas
         self.canvas.draw()
 
-
     def choose_colour(self):
         self.eraser_on = False
         self.chosencolour = askcolor(color=self.chosencolour)[1]
@@ -645,7 +644,7 @@ class MRIAnnotationTool:
 
     def on_mouse_release(self, event):
         if event.name == 'button_release_event':
-            if event.button == 1:
+            if self.active_button == self.drawing_button and event.button == 1:
                 self.drawing = False
                 self.prev_x = None
                 self.prev_y = None
@@ -657,8 +656,6 @@ class MRIAnnotationTool:
                 else:
                     if self.next_lesion_number in self.current_lesions_used:
                         self.current_lesions_used.remove(self.next_lesion_number)
-            else:
-                return
 
     def draw_on_canvas(self, event):
         if event.name == 'motion_notify_event' and self.drawing:
@@ -747,6 +744,15 @@ class MRIAnnotationTool:
                 self.current_lesions_used = [lesion_id for lesion_id in self.current_lesions_used if lesion_id != lesion_to_remove]
                 self.all_lesions_information.remove(entry)
                 self.select_lesion_combobox['values'] = self.current_lesions_used
+                if self.select_lesion_combobox.get() == lesion_to_remove:
+                    self.select_lesion_combobox.set('')
+                    self.t2w_peripheral_zone_combobox.set('')
+                    self.t2w_transition_zone_combobox.set('')
+                    self.diffusion_weighted_peripheral_zone_combobox.set('')
+                    self.diffusion_weighted_transition_zone_combobox.set('')
+                    self.dynamic_contrast_enhanced_imaging_combobox.set('')
+                    self.pirad_score_combobox.set('')
+                    self.additional_comments_textbox.delete('1.0', 'end')
                 break
         
     def remove_sequence(self, sequence_to_remove, lesion_to_remove):
