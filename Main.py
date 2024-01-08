@@ -497,10 +497,11 @@ class MRIAnnotationTool:
             self.drawing_active = False
 
         if self.undo_active:
-            self.activate_undo()
+            self.undo_active = False
             # Disconnect the delete_selected_line method from the mouse click event
             if hasattr(self, 'undo_callback_id') and self.undo_callback_id:
                 self.canvas.mpl_disconnect(self.undo_callback_id)
+                self.undo_callback_id = None
 
         # Toggle the zoom_active state
         self.zoom_active = not deactivate
@@ -648,14 +649,17 @@ class MRIAnnotationTool:
                 self.drawing = False
                 self.prev_x = None
                 self.prev_y = None
-                # Add the current list of lines to the list of all lines
+                
+                # Check for duplicate lines before appending to all_annotations
                 if self.current_annotations:
                     self.all_annotations.append(self.current_annotations)
                     self.create_pirads_form(self.next_lesion_number)
                     self.select_lesion_combobox['values'] = self.current_lesions_used
+                    self.run_lesion_check()
                 else:
                     if self.next_lesion_number in self.current_lesions_used:
                         self.current_lesions_used.remove(self.next_lesion_number)
+                        
 
     def draw_on_canvas(self, event):
         if event.name == 'motion_notify_event' and self.drawing:
@@ -679,7 +683,27 @@ class MRIAnnotationTool:
                 self.canvas.draw()
                 self.prev_x, self.prev_y = x, y
                 # Add additional metadata at the folder level
+    
+    def run_lesion_check(self):
+        seen_labels = []
+        annotations_checked = []
+        for annotations in self.all_annotations:
+            # Check if the coordinate set is not empty
+            if annotations:
+                # Extract the label of the first coordinate in the set
+                current_label = annotations[0].get_label()
 
+                # Check if the label is already seen
+                if current_label not in seen_labels:
+                    seen_labels.append(current_label)
+                    annotations_checked.append(annotations)
+        self.all_annotations.clear()
+        self.all_annotations = annotations_checked
+        self.current_lesions_used = list(set(self.current_lesions_used))
+        self.current_lesions_used.sort()
+        self.select_lesion_combobox['values'] = self.current_lesions_used
+        self.canvas.draw()
+    
     def get_next_lesion_number(self):
         if not self.current_lesions_used:
             # Handle the case where the list is empty
@@ -701,7 +725,7 @@ class MRIAnnotationTool:
        # Check if there are any sequences of lines
         if self.all_annotations:
             # Set the callback for the mouse click event to handle line deletion
-            self.canvas.mpl_connect('button_press_event', self.delete_selected_line)
+            self.canvas.mpl_connect('button_press_event', self.delete_selected_line)     
 
     def delete_selected_line(self, event):
         if event.name == 'button_press_event' and event.button == 1:
