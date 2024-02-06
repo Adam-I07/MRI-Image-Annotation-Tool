@@ -21,7 +21,7 @@ class MRIAnnotationTool:
     def __init__(self, master):
         self.master = master
         self.master.title("MRI Annotation Tool")
-        self.master.geometry("1100x740")
+        self.master.geometry("1100x780")
         self.master.resizable(0, 0)
 
         # Add a variable to track the pen drawing state
@@ -291,6 +291,10 @@ class MRIAnnotationTool:
             self.toggle_lesion_button.destroy()
             del self.toggle_lesion_button
         
+        if hasattr(self, 'pen_setting_button'):
+            self.pen_setting_button.destroy()
+            del self.pen_setting_button
+        
         if self.scans_collective:
             self.current_scan = self.scans_collective[0]
 
@@ -320,7 +324,6 @@ class MRIAnnotationTool:
             self.canvas_width, self.canvas_height = self.f.get_size_inches() * self.f.dpi
 
              # Bind mouse button press, release, and motion events for drawing
-            self.canvas.mpl_connect('scroll_event', self.on_mouse_scroll) if hasattr(self, 'on_mouse_scroll') else None
             self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
             self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
             self.canvas.mpl_connect('motion_notify_event', self.draw_on_canvas)
@@ -345,20 +348,14 @@ class MRIAnnotationTool:
             self.viewing_separator.grid(row=8, column=0, columnspan=4, ipadx=70, padx=(20,0), pady=(20,0))
             self.viewing_widgets_label = ttk.Label(self.tool_frame, text="     Viewing\nFunctionality:")
             self.viewing_widgets_label.grid(row=9, column=0, padx=(40,0), pady=(10,0))
-            self.reset_view_button = ttk.Button(self.tool_frame, text="Reset", command=self.reset_view)
-            self.reset_view_button.grid(row=10, column=0, padx=(40, 0))
             self.zoom_button = ttk.Button(self.tool_frame, text="Zoom", command=self.activate_zoom)
-            self.zoom_button.grid(row=11, column=0, padx=(40,0))
+            self.zoom_button.grid(row=10, column=0, padx=(40,0))
+            self.home_view_button = ttk.Button(self.tool_frame, text="Home View", command=self.reset_view)
+            self.home_view_button.grid(row=11, column=0, padx=(40, 0))
             self.coordinates_label = ttk.Label(self.viewer_frame, text="Coordinates: (0, 0)", font=("Calibri", 12))
             self.coordinates_label.grid(row=12, column=0, padx=(0, 310))
-
-            # Save Widget
-            self.saving_separator = ttk.Separator(self.tool_frame, orient="horizontal")
-            self.saving_separator.grid(row=13, column=0, columnspan=4, ipadx=70, padx=(10,0), pady=(20,0))
-            self.saving_label = ttk.Label(self.tool_frame, text="     Saving\nFunctionality:")
-            self.saving_label.grid(row=14, column=0, padx=(40,0), pady=(10,0))
-            self.save_annotations_button = ttk.Button(self.tool_frame, text="Save", command=lambda:self.save_current_opened_lesion_pirads(self.current_opened_lesion))
-            self.save_annotations_button.grid(row=15, column=0, padx=(40,0))
+            self.end_separator = ttk.Separator(self.tool_frame, orient="horizontal")
+            self.end_separator.grid(row=13, column=0, columnspan=4, ipadx=70, padx=(10,0), pady=(20,0))
 
             # Annotation Tools Widgets
             self.tool_separator = ttk.Separator(self.tool_frame, orient="horizontal")
@@ -367,16 +364,11 @@ class MRIAnnotationTool:
             self.annotation_tool_label.grid(row=2, column=0, padx=(40, 0), pady=(5, 0))
             self.drawing_button = ttk.Button(self.tool_frame, text="Pen", command=self.activate_drawing)
             self.drawing_button.grid(row=3, column=0, padx=(40, 0), pady=(0,0))
-            self.colour_button = ttk.Button(self.tool_frame, text="Colour", command=self.choose_colour)
-            self.colour_button.grid(row=4, column=0, padx=(40, 0), pady=(0,0))
             self.undo_button = ttk.Button(self.tool_frame, text="Undo", command=self.activate_undo)
             self.undo_button.grid(row=5, column=0, padx=(40, 0), pady=(0,0))
-            self.choose_pen_size_label = ttk.Label(self.tool_frame, text="Pen Size:", font=("Calibri", 12))
-            self.choose_pen_size_label.grid(row=6, column=0, padx=(40, 0), pady=(0,0))
-            self.choose_pen_size_scale = tk.Scale(self.tool_frame, from_=1, to=10, orient='horizontal', command=self.update_pen_size, showvalue=False)
-            self.choose_pen_size_scale.set(self.line_width)
-            self.choose_pen_size_scale.grid(row=7, column=0, padx=(40, 0), pady=(0,0))    
-
+            self.pen_setting_button = ttk.Button(self.tool_frame, text="Pen Settings", command=self.pen_setting)
+            self.pen_setting_button.grid(row=6, column=0, padx=(40, 0), pady=(0,0))
+            
             # PI-RADS AND Lesions Forms Widgets      
             self.lesion_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
             self.lesion_separator.grid(row=1, column=0, columnspan=4, ipadx=120, pady=(10,0))  
@@ -433,6 +425,10 @@ class MRIAnnotationTool:
             self.additional_comments_label.grid(row=22, column=0, padx=(0, 120), pady=(5, 0))
             self.additional_comments_textbox = tk.Text(self.pirad_frame, height=8, width=35)
             self.additional_comments_textbox.grid(row=23, column=0, padx=(0,0), pady=(0,10))
+            self.save_button_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
+            self.save_button_separator.grid(row=24, column=0,columnspan=4, ipadx=120, pady=(0,0))
+            self.save_annotations_button = ttk.Button(self.pirad_frame, text="Save", command=lambda:self.save_current_opened_lesion_pirads(self.current_opened_lesion))
+            self.save_annotations_button.grid(row=25, column=0, padx=(0,0), pady=(5,0))
 
             # Create a new toolbar instance
             self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
@@ -558,17 +554,6 @@ class MRIAnnotationTool:
             # Add the current list of lines to the list of all lines
             if self.current_annotations:
                 self.all_annotations.append(self.current_annotations)
-
-    def on_mouse_scroll(self, event):
-        # Check if the event was a scroll event
-        if event.name == 'scroll_event':
-            # Calculate the zoom center coordinates based on the mouse pointer location
-            x, y = event.x, event.y
-
-            # Zoom in based on the direction of the scroll
-            if event.step > 0:
-                self.zoom_source = "scroll"
-                self.zoom(0.8, x, y, mouse_zoom=True)
         
     def on_mouse_motion(self, event):
         # Check if the event is a motion event
@@ -582,31 +567,6 @@ class MRIAnnotationTool:
 
             # Update the coordinates label
             self.coordinates_label.config(text=f"Coordinates: ({x}, {y})")
-
-    def zoom(self, scale, x, y, mouse_zoom=True):
-        if mouse_zoom:
-            # Get the current x and y coordinates of the mouse pointer
-            pointer_x, pointer_y = self.canvas.get_tk_widget().winfo_pointerxy()
-
-            # Convert the screen coordinates to figure coordinates
-            x, y = pointer_x - self.canvas.get_tk_widget().winfo_rootx(), pointer_y - self.canvas.get_tk_widget().winfo_rooty()
-            inv = self.a.transData.inverted()
-            x, y = inv.transform([x, y])
-
-            # Calculate the new axis limits after zooming
-            new_xlim = [coord * scale - (scale - 1) * x for coord in self.a.get_xlim()]
-            new_ylim = [coord * scale - (scale - 1) * y for coord in self.a.get_ylim()]
-
-            # Set the new axis limits
-            self.a.set_xlim(new_xlim)
-            self.a.set_ylim(new_ylim)
-        else:
-            # Use the original axis limits when resetting
-            self.a.set_xlim(self.original_views.home().intervalx)
-            self.a.set_ylim(self.original_views.home().intervaly)
-
-        # Redraw the canvas
-        self.canvas.draw()
 
     def reset_zoom(self, *args):
         # Manually reset the zoom state
@@ -1052,6 +1012,27 @@ class MRIAnnotationTool:
         else:
             messagebox.showerror('Error', 'Select a scan set please')
   
+    def pen_setting(self):
+        self.pen_setting_window = tk.Tk()
+        self.pen_setting_window.title('Pen Settings')
+        self.pen_setting_window.geometry('200x150')
+        self.pen_setting_window.resizable(0, 0)
+
+        self.pirads_scores_label = ttk.Label(self.pen_setting_window, text="Settings:", font=("Calibri", 20))        
+        self.pirads_scores_label.grid(row=1, column=0, padx=(50, 0), pady=(10, 0))
+        self.top_separator = ttk.Separator(self.pen_setting_window, orient="horizontal")
+        self.top_separator.grid(row=2, column=0, ipadx=50, padx=(50,0), pady=(10,0)) 
+        self.colour_button = ttk.Button(self.pen_setting_window, text="Colour", command=self.choose_colour)
+        self.colour_button.grid(row=3, column=0, padx=(40, 0), pady=(0,0))
+        self.choose_pen_size_label = ttk.Label(self.pen_setting_window, text="Pen Size:", font=("Calibri", 12))
+        self.choose_pen_size_label.grid(row=4, column=0, padx=(40, 0), pady=(0,0))
+        self.choose_pen_size_scale = tk.Scale(self.pen_setting_window, from_=1, to=10, orient='horizontal', command=self.update_pen_size, showvalue=False)
+        self.choose_pen_size_scale.set(self.line_width)
+        self.choose_pen_size_scale.grid(row=5, column=0, padx=(40, 0), pady=(0,0))
+        self.bottom_separator = ttk.Separator(self.pen_setting_window, orient="horizontal")
+        self.bottom_separator.grid(row=6, column=0, ipadx=50, padx=(50,0), pady=(10,0)) 
+
+        self.pen_setting_window.mainloop()   
     #End of Display Scans code
 
     #Following code is the start for the Uploading Scans
@@ -1403,6 +1384,10 @@ class MRIAnnotationTool:
                         if hasattr(self, 'toggle_lesion_button'):
                             self.toggle_lesion_button.destroy()
                             del self.toggle_lesion_button
+                        
+                        if hasattr(self, 'pen_setting_button'):
+                            self.pen_setting_button.destroy()
+                            del self.pen_setting_button
 
                     shutil.rmtree(file_path_to_delete)
                     messagebox.showinfo("Deleted", f"{scan_folder_to_delete} has been successfully deleted")
