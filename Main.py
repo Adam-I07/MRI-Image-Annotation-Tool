@@ -6,19 +6,15 @@ from matplotlib.figure import Figure
 import matplotlib.image as mpimg
 import tkinter as tk
 from tkinter import ttk
-from tkinter import font as tkFont
 import os
-import cv2 as cv
 import numpy as np
-import pydicom as PDCM
-from tkinter.filedialog import askdirectory
-import shutil
 from tkinter.colorchooser import askcolor
 import json
 import matplotlib.lines as mlines
 import uploadScan
 import deleteScan
 import displayScan
+import lesionToggle
 
 class MRIAnnotationTool:
     def __init__(self, master):
@@ -326,7 +322,7 @@ class MRIAnnotationTool:
         self.additional_comments_textbox.delete('1.0', 'end')
 
     def reset_view(self):
-    # Get the current NavigationToolbar2Tk instance
+        # Get the current NavigationToolbar2Tk instance
         self.toolbar = self.toolbar
         # Reset the view using the NavigationToolbar2Tk's home button
         self.toolbar_home()
@@ -786,35 +782,11 @@ class MRIAnnotationTool:
             json.dump(existing_data, json_file)
 
     def toggle_lesion(self, lesion_to_toggle):
-        if lesion_to_toggle:
-            selected_lines = []
-            for sequence in self.all_annotations:
-                for line in sequence:
-                    if line.get_label() == lesion_to_toggle:
-                        selected_lines.append(line)
+        # Assuming self.all_annotations, self.canvas, and self.viewer_frame are already defined in your main class
+        self.lesion_visibility_manager = lesionToggle.LesionVisibilityManager(self.all_annotations, self.canvas, self.viewer_frame)
+        # To toggle a lesion's visibility
+        self.lesion_visibility_manager.toggle_lesion(lesion_to_toggle)
 
-            # Toggle visibility
-            self.toggle_visibility(selected_lines)
-        else:
-            messagebox.showerror('Error', 'Select a lesion to toggle')
-
-    def toggle_visibility(self, lines_to_toggle):
-        # Toggle visibility of the selected lines
-        for line in lines_to_toggle:
-            current_visibility = line.get_visible()
-            line.set_visible(not current_visibility)
-
-        # Redraw the canvas
-        self.canvas.draw()
-        self.viewer_frame.after(200, lambda: self.restore_visibility(lines_to_toggle))
-
-    def restore_visibility(self, lines_to_restore):
-        # Restore visibility of the selected lines
-        for line in lines_to_restore:
-            line.set_visible(True)
-
-        # Redraw the canvas
-        self.canvas.draw()
     
     def pen_setting(self):
         self.pen_setting_window = tk.Tk()
