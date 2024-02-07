@@ -16,6 +16,9 @@ import shutil
 from tkinter.colorchooser import askcolor
 import json
 import matplotlib.lines as mlines
+import uploadScan
+import deleteScan
+import displayScan
 
 class MRIAnnotationTool:
     def __init__(self, master):
@@ -43,6 +46,7 @@ class MRIAnnotationTool:
         self.canvas = None
         self.chosencolour = '#ff0000'  #default colour (red)
         self.line_width = 2  # Default line width
+        self.display_scan_instance =  displayScan.ScanViewer(self)
 
         # Add canvas width and height attributes
         self.canvas_width = 0
@@ -96,204 +100,59 @@ class MRIAnnotationTool:
         self.pirad_title_label.grid(row=0, column=0, padx=100)
         self.pirad_frame.grid_propagate(0)
 
-    # Code to allows the user to exit from the application
+    def upload_scans(self):
+        scan_uploader = uploadScan.scanUploader()
+        scan_uploader.upload_scans()
+
     def exit_application(self):
         self.master.destroy()
+
+    def display_scans(self):
+        self.display_scan_instance.display_scans()
+   
+    def refresh_UI(self):
+        attributes_to_clear = [
+            'canvas_frame', 'canvas', 'toolbar_frame', 'scan_scale', 
+            'home_view_button', 'zoom_button', 'coordinates_label', 'toolbar',
+            'viewing_separator', 'viewing_widgets_label', 'tool_separator', 
+            'annotation_tool_label', 'drawing_button', 'colour_button', 
+            'undo_button', 'choose_pen_size_label', 'choose_pen_size_scale', 
+            'saving_separator', 'saving_label', 'save_annotations_button', 'viewing_separator', 'tool_separator'
+            'lesion_separator', 'select_lesion_label', 'select_lesion_combobox', 
+            'load_lesion_button', 't2w_separator', 't2_weighted_imaging_label', 
+            't2w_peripheral_zone_label', 't2w_peripheral_zone_combobox', 
+            't2w_transition_zone_label', 't2w_transition_zone_combobox', 
+            'dwi_top_separator', 'diffusion_weighted_imaging_label', 
+            'diffusion_weighted_peripheral_zone_label', 'diffusion_weighted_peripheral_zone_combobox', 
+            'diffusion_weighted_transition_zone_label', 'diffusion_weighted_transition_zone_combobox', 
+            'dynamic_contrast_enhanced_imaging_separator', 'dynamic_contrast_enhanced_imaging_label', 
+            'dynamic_contrast_enhanced_imaging_combobox', 'pirads_score_separator', 
+            'pirads_scores_label', 'pirad_score_combobox', 'additional_comments_separator', 
+            'additional_comments_label', 'additional_comments_textbox', 'toggle_lesion_button', 
+            'pen_setting_button']
+
+        for attr in attributes_to_clear:
+            if hasattr(self, attr):
+                # Special handling for the 'canvas' attribute to use get_tk_widget().destroy()
+                if attr == 'canvas' and getattr(self, attr) is not None:
+                    getattr(self, attr).get_tk_widget().destroy()
+                else:
+                    widget = getattr(self, attr)
+                    if widget is not None:
+                        widget.destroy()
+                delattr(self, attr)
+    
+    #Delete Scans Code 
+    def delete_scans(self):
+        delete_scan = deleteScan.ScanSetDelete(self)
+        delete_scan.delete_scans(self.current_opened_scan)
 
     #Following code is the start for the Scan Viewer to be displayed on the Main Menu
     def load_scan_viewer(self):
         self.original_xlim = None
         self.original_ylim = None
         self.original_views = None
-
-        # Destroy existing widgets in the viewer
-        if hasattr(self, 'canvas_frame'):
-            self.canvas_frame.destroy()
-            del self.canvas_frame
-
-        if hasattr(self, 'canvas') and self.canvas:
-            self.canvas.get_tk_widget().destroy()
-            del self.canvas
-
-        if hasattr(self, 'toolbar_frame'):
-            self.toolbar_frame.destroy()
-            del self.toolbar_frame
-
-        if hasattr(self, 'scan_scale'):
-            self.scan_scale.destroy()
-            del self.scan_scale
-
-        if hasattr(self, 'reset_view_button'):
-            self.reset_view_button.destroy()
-            del self.reset_view_button
-
-        if hasattr(self, 'zoom_button'):
-            self.zoom_button.destroy()
-            del self.zoom_button
-
-        if hasattr(self, 'coordinates_label'):
-            self.coordinates_label.destroy()
-            del self.coordinates_label
-
-        if hasattr(self, 'toolbar'):
-            self.toolbar.destroy()
-            del self.toolbar
-
-        if hasattr(self, 'viewing_separator'):
-            self.viewing_separator.destroy()
-            del self.viewing_separator
-
-        if hasattr(self, 'viewing_widgets_label'):
-            self.viewing_widgets_label.destroy()
-            del self.viewing_widgets_label
-
-        if hasattr(self, 'tool_separator'):
-            self.tool_separator.destroy()
-            del self.tool_separator
-
-        if hasattr(self, 'annotation_tool_label'):
-            self.annotation_tool_label.destroy()
-            del self.annotation_tool_label
-        
-        if hasattr(self, 'drawing_button'):
-            self.drawing_button.destroy()
-            del self.drawing_button
-        
-        if hasattr(self, 'colour_button'):
-            self.colour_button.destroy()
-            del self.colour_button
-
-        if hasattr(self, 'undo_button'):
-            self.undo_button.destroy()
-            del self.undo_button
-        
-        if hasattr(self, 'choose_pen_size_label'):
-            self.choose_pen_size_label.destroy()
-            del self.choose_pen_size_label
-        
-        if hasattr(self, 'choose_pen_size_scale'):
-            self.choose_pen_size_scale.destroy()
-            del self.choose_pen_size_scale
-
-        if hasattr(self, 'saving_separator'):
-            self.saving_separator.destroy()
-            del self.saving_separator
-        
-        if hasattr(self, 'saving_label'):
-            self.saving_label.destroy()
-            del self.saving_label
-        
-        if hasattr(self, 'save_annotations_button'):
-            self.save_annotations_button.destroy()
-            del self.save_annotations_button
-        
-        if hasattr(self, 'lesion_separator'):
-            self.lesion_separator.destroy()
-            del self.lesion_separator
-        
-        if hasattr(self, 'select_lesion_label'):
-            self.select_lesion_label.destroy()
-            del self.select_lesion_label
-        
-        if hasattr(self, 'select_lesion_combobox'):
-            self.select_lesion_combobox.destroy()
-            del self.select_lesion_combobox
-        
-        if hasattr(self, 'load_lesion_button'):
-            self.load_lesion_button.destroy()
-            del self.load_lesion_button
-        
-        if hasattr(self, 't2w_separator'):
-            self.t2w_separator.destroy()
-            del self.t2w_separator
-        
-        if hasattr(self, 't2_weighted_imaging_label'):
-            self.t2_weighted_imaging_label.destroy()
-            del self.t2_weighted_imaging_label
-        
-        if hasattr(self, 't2w_peripheral_zone_label'):
-            self.t2w_peripheral_zone_label.destroy()
-            del self.t2w_peripheral_zone_label
-        
-        if hasattr(self, 't2w_peripheral_zone_combobox'):
-            self.t2w_peripheral_zone_combobox.destroy()
-            del self.t2w_peripheral_zone_combobox
-        
-        if hasattr(self, 't2w_transition_zone_label'):
-            self.t2w_transition_zone_label.destroy()
-            del self.t2w_transition_zone_label
-        
-        if hasattr(self, 't2w_transition_zone_combobox'):
-            self.t2w_transition_zone_combobox.destroy()
-            del self.t2w_transition_zone_combobox
-        
-        if hasattr(self, 'dwi_top_separator'):
-            self.dwi_top_separator.destroy()
-            del self.dwi_top_separator
-        
-        if hasattr(self, 'diffusion_weighted_imaging_label'):
-            self.diffusion_weighted_imaging_label.destroy()
-            del self.diffusion_weighted_imaging_label
-        
-        if hasattr(self, 'diffusion_weighted_peripheral_zone_label'):
-            self.diffusion_weighted_peripheral_zone_label.destroy()
-            del self.diffusion_weighted_peripheral_zone_label
-        
-        if hasattr(self, 'diffusion_weighted_peripheral_zone_combobox'):
-            self.diffusion_weighted_peripheral_zone_combobox.destroy()
-            del self.diffusion_weighted_peripheral_zone_combobox
-        
-        if hasattr(self, 'diffusion_weighted_transition_zone_label'):
-            self.diffusion_weighted_transition_zone_label.destroy()
-            del self.diffusion_weighted_transition_zone_label
-        
-        if hasattr(self, 'diffusion_weighted_transition_zone_combobox'):
-            self.diffusion_weighted_transition_zone_combobox.destroy()
-            del self.diffusion_weighted_transition_zone_combobox
-        
-        if hasattr(self, 'dynamic_contrast_enhanced_imaging_separator'):
-            self.dynamic_contrast_enhanced_imaging_separator.destroy()
-            del self.dynamic_contrast_enhanced_imaging_separator
-        
-        if hasattr(self, 'dynamic_contrast_enhanced_imaging_label'):
-            self.dynamic_contrast_enhanced_imaging_label.destroy()
-            del self.dynamic_contrast_enhanced_imaging_label
-        
-        if hasattr(self, 'dynamic_contrast_enhanced_imaging_combobox'):
-            self.dynamic_contrast_enhanced_imaging_combobox.destroy()
-            del self.dynamic_contrast_enhanced_imaging_combobox
-        
-        if hasattr(self, 'pirads_score_separator'):
-            self.pirads_score_separator.destroy()
-            del self.pirads_score_separator
-
-        if hasattr(self, 'pirads_scores_label'):
-            self.pirads_scores_label.destroy()
-            del self.pirads_scores_label
-        
-        if hasattr(self, 'pirad_score_combobox'):
-            self.pirad_score_combobox.destroy()
-            del self.pirad_score_combobox
-        
-        if hasattr(self, 'additional_comments_separator'):
-            self.additional_comments_separator.destroy()
-            del self.additional_comments_separator
-        
-        if hasattr(self, 'additional_comments_label'):
-            self.additional_comments_label.destroy()
-            del self.additional_comments_label
-        
-        if hasattr(self, 'additional_comments_textbox'):
-            self.additional_comments_textbox.destroy()
-            del self.additional_comments_textbox
-        
-        if hasattr(self, 'toggle_lesion_button'):
-            self.toggle_lesion_button.destroy()
-            del self.toggle_lesion_button
-        
-        if hasattr(self, 'pen_setting_button'):
-            self.pen_setting_button.destroy()
-            del self.pen_setting_button
+        self.refresh_UI()
         
         if self.scans_collective:
             self.current_scan = self.scans_collective[0]
@@ -956,62 +815,7 @@ class MRIAnnotationTool:
 
         # Redraw the canvas
         self.canvas.draw()
-    #End of Main Menu Display Viewer Code
-
-    #Following code is the start for the Display Scans
-    def display_scans(self):
-        self.display_scans_window = tk.Tk()
-        self.display_scans_window.title('Display Scan')
-        self.display_scans_window.geometry('430x130')
-        self.display_scans_window.resizable(0, 0)
-
-        current_folders = []
-        save_scan_folder = "saved_scans"
-        get_folder_named = os.listdir(save_scan_folder)
-        current_folders = get_folder_named
-        if '.DS_Store' in current_folders:
-            current_folders.remove('.DS_Store') 
-
-
-        self.display_scan_window_name_label = ttk.Label(self.display_scans_window, text="Display Scan", font=("Caslon", 22))
-        self.display_scan_window_name_label.grid(row=0, column=0, padx=(140,0), pady=10)
-        self.select_scan_label = ttk.Label(self.display_scans_window, text="Select a scan set:", font=("Calibri", 12))
-        self.select_scan_label.grid(row=1, column=0, padx=(10,0), sticky='w')
-        self.select_scan_set_combobox = ttk.Combobox(self.display_scans_window, font=('Arial', 12, 'bold'), width=40, values=current_folders)
-        self.select_scan_set_combobox.grid(row=2, column=0, padx=(10,0), sticky='w')
-        self.select_scan_set_combobox['state'] = 'readonly'
-        self.load_scan_button = ttk.Button(self.display_scans_window, text="Load", command=lambda: self.display_scan_open(self.select_scan_set_combobox.get()))
-        self.load_scan_button.grid(row=2, column=1)
-
-        self.display_scans_window.mainloop()
-
-    def display_scan_open(self, scan_folder_name):
-        if scan_folder_name:
-            self.scans_collective.clear()
-            scans_dir = "saved_scans" + "/" + scan_folder_name
-            scans_list = os.listdir(scans_dir)
-            scans_list.sort()
-            if '.DS_Store' in scans_list:
-                scans_list.remove('.DS_Store')
-            if f'{scan_folder_name}_annotation_information.json' in scans_list:
-                scans_list.remove(f'{scan_folder_name}_annotation_information.json')
-            for i in range(0, len(scans_list)):
-                scan_name = (f'{scans_dir}/{scans_list[i]}')
-                self.scans_collective.append(scan_name)
-            if not self.scans_collective:
-                messagebox.showwarning('Warning', 'No scans found in the selected folder.')
-            else:
-                # Check if coordinates_label exists before updating
-                if hasattr(self, 'coordinates_label') and self.coordinates_label:
-                    # Clear previous coordinates when loading a new set of scans
-                    self.coordinates_label.config(text="Coordinates: (0, 0)")
-
-                self.current_opened_scan = scan_folder_name
-                self.display_scans_window.destroy()
-                self.load_scan_viewer()
-        else:
-            messagebox.showerror('Error', 'Select a scan set please')
-  
+    
     def pen_setting(self):
         self.pen_setting_window = tk.Tk()
         self.pen_setting_window.title('Pen Settings')
@@ -1032,381 +836,9 @@ class MRIAnnotationTool:
         self.bottom_separator = ttk.Separator(self.pen_setting_window, orient="horizontal")
         self.bottom_separator.grid(row=6, column=0, ipadx=50, padx=(50,0), pady=(10,0)) 
 
-        self.pen_setting_window.mainloop()   
-    #End of Display Scans code
+        self.pen_setting_window.mainloop()
 
-    #Following code is the start for the Uploading Scans
-    def upload_scans(self):
-        self.upload_scan_window = tk.Tk()
-        self.upload_scan_window.title('Upload Scan')
-        self.upload_scan_window.geometry('400x130')
-        self.upload_scan_window.resizable(0, 0)
-
-        self.upload_scan_window_name_label = ttk.Label(self.upload_scan_window, text="Upload Scans", font=("Caslon", 22))
-        self.upload_scan_window_name_label.grid(row=0, column=0, padx=(140,0), pady=10)
-        self.enter_scan_folder_name_label = ttk.Label(self.upload_scan_window, text="Enter a name for the scans:", font=("Calibri", 12))
-        self.enter_scan_folder_name_label.grid(row=1, column=0, padx=(10,0), sticky='w')
-        self.enter_scan_name_entry = ttk.Entry(self.upload_scan_window, font=('Arial', 10, 'bold'), width=40)
-        self.enter_scan_name_entry.grid(row=2, column=0, padx=(10,0), sticky='w')
-        self.scan_name_button = ttk.Button(self.upload_scan_window, text="Upload", command=lambda: self.upload_scan_folder(self.enter_scan_name_entry.get()))
-        self.scan_name_button.grid(row=2, column=1)
-        self.enter_scan_folder_name = ttk.Label(self.upload_scan_window, text="Note: Do not enter spaces rather use - or _", font=("Calibri", 8))
-        self.enter_scan_folder_name.grid(row=3, column=0, padx=(10,0), sticky='w')
-
-        self.upload_scan_window.mainloop()
     
-    def save_scan_set_to_json(self, scan_set_name, scan_data):
-        # Name the file using the scan set entered by the user
-        json_filename = f"saved_scans/{scan_set_name}/{scan_set_name}_annotation_information.json"
-
-        # Open a JSON file in write mode ('w') using a context manager ('with' statement)
-        # The file will be automatically closed when the block of code is exited
-        with open(json_filename, 'w') as json_file:
-            # Use the json.dump function to serialize the Python object (scan_data) 
-            # and write it to the specified file (json_file)
-            json.dump(scan_data, json_file)
-
-    def upload_scan_folder(self, scan_folder_name):
-        if scan_folder_name:
-            if ' ' in scan_folder_name:
-                messagebox.showerror('Error','Folder name cannot contain spaces! Please try again with a different folder name.')
-            else:
-                save_scan_folder = "saved_scans"
-                get_folder_named = os.listdir(save_scan_folder)
-                current_folders = get_folder_named
-                if '.DS_Store' in current_folders:
-                    current_folders.remove('.DS_Store')   
-                if scan_folder_name in current_folders:
-                    messagebox.showerror('Error', 'Folder name already exists please enter a new name.')
-                else:
-                    new_folder_path = os.path.join(save_scan_folder, scan_folder_name)
-                    try:
-                        os.makedirs(new_folder_path)
-                        messagebox.showinfo('Select Folder', 'Select the folder where your scans you wish to upload are present.')
-                        filename = askdirectory()
-                        current_scans_folder = filename
-                        
-                        input_scans_list = os.listdir(current_scans_folder)
-                        input_scans_list.sort()
-
-                        if os.path.isdir(new_folder_path) is False:
-                            os.mkdir(new_folder_path)
-
-                        # Create a list to store scan data
-                        scan_data = []
-
-                        for i in range(0, len(input_scans_list)):
-                            dicom_path = os.path.join(current_scans_folder, input_scans_list[i])
-                            output_scans, instance_number = self.dicom_to_png(dicom_path)
-                            cv.imwrite(os.path.join(new_folder_path, f"{instance_number - 1:04d}.png"), output_scans)
-
-                            # Collect scan data
-                            scan_data.append({
-                                'scan_id': f"{instance_number - 1:04d}.png",
-                                'coordinates': [],  # Placeholder for coordinates (to be collected during annotation)
-                                'lesion_information': [] # Placeholder for lesion information
-                            })
-                        
-                        # Save scan data to JSON file
-                        self.save_scan_set_to_json(scan_folder_name, scan_data)
-                        messagebox.showinfo('Scans Uploaded', 'Scans have been uploaded successfully.')
-
-                        # Close the upload_scan_window
-                        self.upload_scan_window.destroy()
-                    except OSError as e:
-                        messagebox.showerror('Error', f'Error creating folder: {e}')
-        else:
-            messagebox.showerror('Error', 'Enter a folder name.')
-
-    def dicom_to_png(self, Path):
-        DCM_Img = PDCM.read_file(Path)
-
-        rows = DCM_Img.get(0x00280010).value  # Get number of rows from tag (0028, 0010)
-        cols = DCM_Img.get(0x00280011).value  # Get number of cols from tag (0028, 0011)
-
-        Instance_Number = int(DCM_Img.get(0x00200013).value)  # Get actual slice instance number from tag (0020, 0013)
-
-        Window_Center = int(DCM_Img.get(0x00281050).value)  # Get window center from tag (0028, 1050)
-        Window_Width = int(DCM_Img.get(0x00281051).value)  # G et window width from tag (0028, 1051)
-
-        Window_Max = int(Window_Center + Window_Width / 2)
-        Window_Min = int(Window_Center - Window_Width / 2)
-
-        if (DCM_Img.get(0x00281052) is None):
-            Rescale_Intercept = 0
-        else:
-            Rescale_Intercept = int(DCM_Img.get(0x00281052).value)
-
-        if (DCM_Img.get(0x00281053) is None):
-            Rescale_Slope = 1
-        else:
-            Rescale_Slope = int(DCM_Img.get(0x00281053).value)
-
-        New_Img = np.zeros((rows, cols), np.uint8)
-        Pixels = DCM_Img.pixel_array
-
-        for i in range(0, rows):
-            for j in range(0, cols):
-                Pix_Val = Pixels[i][j]
-                Rescale_Pix_Val = Pix_Val * Rescale_Slope + Rescale_Intercept
-
-                if (Rescale_Pix_Val > Window_Max):  # if intensity is greater than max window
-                    New_Img[i][j] = 255
-                elif (Rescale_Pix_Val < Window_Min):  # if intensity is less than min window
-                    New_Img[i][j] = 0
-                else:
-                    New_Img[i][j] = int(
-                        ((Rescale_Pix_Val - Window_Min) / (Window_Max - Window_Min)) * 255)  # Normalize the intensities
-
-        return New_Img, Instance_Number
-    
-    #Uploading Scans Code Ending
-
-    #Delete Scans Code Starting
-
-    def delete_scans(self):
-        self.delete_scan_window = tk.Tk()
-        self.delete_scan_window.title('Delete Scan')
-        self.delete_scan_window.geometry('430x130')
-        self.delete_scan_window.resizable(0, 0)
-
-        current_folders = []
-        save_scan_folder = "saved_scans"
-        get_folder_named = os.listdir(save_scan_folder)
-        current_folders = get_folder_named
-        if '.DS_Store' in current_folders:
-            current_folders.remove('.DS_Store') 
-
-        self.delete_scan_window_name_label = ttk.Label(self.delete_scan_window, text="Delete Scans", font=("Caslon", 22))
-        self.delete_scan_window_name_label.grid(row=0, column=0, padx=(140,0), pady=10)
-        self.select_scan_set_label = ttk.Label(self.delete_scan_window, text="Select a scan set to delete:", font=("Calibri", 12))
-        self.select_scan_set_label.grid(row=1, column=0, padx=(10,0), sticky='w')
-        self.select_scan_set_folder_combobox = ttk.Combobox(self.delete_scan_window, font=('Arial', 12, 'bold'), width=40, values=current_folders)
-        self.select_scan_set_folder_combobox.grid(row=2, column=0, padx=(10,0), sticky='w')
-        self.select_scan_set_folder_combobox['state'] = 'readonly'
-        self.delete_scan_set_button = ttk.Button(self.delete_scan_window, text="Delete", command=lambda: self.delete_scan_file(self.select_scan_set_folder_combobox.get()))
-        self.delete_scan_set_button.grid(row=2, column=1)
-
-        self.delete_scan_window.mainloop()
-
-    def delete_scan_file(self, scan_folder_to_delete):
-        if scan_folder_to_delete:
-            result = messagebox.askquestion("Confirmation", f"Are you sure you would like to delete {scan_folder_to_delete}?")
-            if result == 'yes':
-                save_scan_folder = "saved_scans"
-                file_path_to_delete = os.path.join(save_scan_folder, scan_folder_to_delete)
-                try:
-                    # Check if the deleted scan set is currently open
-                    if scan_folder_to_delete == self.current_opened_scan:
-                        self.scans_collective.clear()
-
-                        # Destroy existing widgets in the viewer
-                        if hasattr(self, 'canvas_frame'):
-                            self.canvas_frame.destroy()
-                            del self.canvas_frame
-
-                        if hasattr(self, 'canvas') and self.canvas:
-                            self.canvas.get_tk_widget().destroy()
-                            del self.canvas
-
-                        if hasattr(self, 'toolbar_frame'):
-                            self.toolbar_frame.destroy()
-                            del self.toolbar_frame
-
-                        if hasattr(self, 'scan_scale'):
-                            self.scan_scale.destroy()
-                            del self.scan_scale
-
-                        if hasattr(self, 'reset_view_button'):
-                            self.reset_view_button.destroy()
-                            del self.reset_view_button
-
-                        if hasattr(self, 'zoom_button'):
-                            self.zoom_button.destroy()
-                            del self.zoom_button
-
-                        if hasattr(self, 'coordinates_label'):
-                            self.coordinates_label.destroy()
-                            del self.coordinates_label
-
-                        if hasattr(self, 'toolbar'):
-                            self.toolbar.destroy()
-                            del self.toolbar
-
-                        if hasattr(self, 'viewing_separator'):
-                            self.viewing_separator.destroy()
-                            del self.viewing_separator
-
-                        if hasattr(self, 'viewing_widgets_label'):
-                            self.viewing_widgets_label.destroy()
-                            del self.viewing_widgets_label
-
-                        if hasattr(self, 'tool_separator'):
-                            self.tool_separator.destroy()
-                            del self.tool_separator
-
-                        if hasattr(self, 'annotation_tool_label'):
-                            self.annotation_tool_label.destroy()
-                            del self.annotation_tool_label
-                        
-                        if hasattr(self, 'drawing_button'):
-                            self.drawing_button.destroy()
-                            del self.drawing_button
-                        
-                        if hasattr(self, 'colour_button'):
-                            self.colour_button.destroy()
-                            del self.colour_button
-
-                        if hasattr(self, 'undo_button'):
-                            self.undo_button.destroy()
-                            del self.undo_button
-                        
-                        if hasattr(self, 'choose_pen_size_label'):
-                            self.choose_pen_size_label.destroy()
-                            del self.choose_pen_size_label
-                        
-                        if hasattr(self, 'choose_pen_size_scale'):
-                            self.choose_pen_size_scale.destroy()
-                            del self.choose_pen_size_scale
-
-                        if hasattr(self, 'saving_separator'):
-                            self.saving_separator.destroy()
-                            del self.saving_separator
-                        
-                        if hasattr(self, 'saving_label'):
-                            self.saving_label.destroy()
-                            del self.saving_label
-                        
-                        if hasattr(self, 'save_annotations_button'):
-                            self.save_annotations_button.destroy()
-                            del self.save_annotations_button
-                        
-                        if hasattr(self, 'lesion_separator'):
-                            self.lesion_separator.destroy()
-                            del self.lesion_separator
-                        
-                        if hasattr(self, 'select_lesion_label'):
-                            self.select_lesion_label.destroy()
-                            del self.select_lesion_label
-                        
-                        if hasattr(self, 'select_lesion_combobox'):
-                            self.select_lesion_combobox.destroy()
-                            del self.select_lesion_combobox
-                        
-                        if hasattr(self, 'load_lesion_button'):
-                            self.load_lesion_button.destroy()
-                            del self.load_lesion_button
-                        
-                        if hasattr(self, 't2w_separator'):
-                            self.t2w_separator.destroy()
-                            del self.t2w_separator
-                        
-                        if hasattr(self, 't2_weighted_imaging_label'):
-                            self.t2_weighted_imaging_label.destroy()
-                            del self.t2_weighted_imaging_label
-                        
-                        if hasattr(self, 't2w_peripheral_zone_label'):
-                            self.t2w_peripheral_zone_label.destroy()
-                            del self.t2w_peripheral_zone_label
-                        
-                        if hasattr(self, 't2w_peripheral_zone_combobox'):
-                            self.t2w_peripheral_zone_combobox.destroy()
-                            del self.t2w_peripheral_zone_combobox
-                        
-                        if hasattr(self, 't2w_transition_zone_label'):
-                            self.t2w_transition_zone_label.destroy()
-                            del self.t2w_transition_zone_label
-                        
-                        if hasattr(self, 't2w_transition_zone_combobox'):
-                            self.t2w_transition_zone_combobox.destroy()
-                            del self.t2w_transition_zone_combobox
-                        
-                        if hasattr(self, 'dwi_top_separator'):
-                            self.dwi_top_separator.destroy()
-                            del self.dwi_top_separator
-                        
-                        if hasattr(self, 'diffusion_weighted_imaging_label'):
-                            self.diffusion_weighted_imaging_label.destroy()
-                            del self.diffusion_weighted_imaging_label
-                        
-                        if hasattr(self, 'diffusion_weighted_peripheral_zone_label'):
-                            self.diffusion_weighted_peripheral_zone_label.destroy()
-                            del self.diffusion_weighted_peripheral_zone_label
-                        
-                        if hasattr(self, 'diffusion_weighted_peripheral_zone_combobox'):
-                            self.diffusion_weighted_peripheral_zone_combobox.destroy()
-                            del self.diffusion_weighted_peripheral_zone_combobox
-                        
-                        if hasattr(self, 'diffusion_weighted_transition_zone_label'):
-                            self.diffusion_weighted_transition_zone_label.destroy()
-                            del self.diffusion_weighted_transition_zone_label
-                        
-                        if hasattr(self, 'diffusion_weighted_transition_zone_combobox'):
-                            self.diffusion_weighted_transition_zone_combobox.destroy()
-                            del self.diffusion_weighted_transition_zone_combobox
-                        
-                        if hasattr(self, 'dynamic_contrast_enhanced_imaging_separator'):
-                            self.dynamic_contrast_enhanced_imaging_separator.destroy()
-                            del self.dynamic_contrast_enhanced_imaging_separator
-                        
-                        if hasattr(self, 'dynamic_contrast_enhanced_imaging_label'):
-                            self.dynamic_contrast_enhanced_imaging_label.destroy()
-                            del self.dynamic_contrast_enhanced_imaging_label
-                        
-                        if hasattr(self, 'dynamic_contrast_enhanced_imaging_combobox'):
-                            self.dynamic_contrast_enhanced_imaging_combobox.destroy()
-                            del self.dynamic_contrast_enhanced_imaging_combobox
-                        
-                        if hasattr(self, 'pirads_score_separator'):
-                            self.pirads_score_separator.destroy()
-                            del self.pirads_score_separator
-
-                        if hasattr(self, 'pirads_scores_label'):
-                            self.pirads_scores_label.destroy()
-                            del self.pirads_scores_label
-                        
-                        if hasattr(self, 'pirad_score_combobox'):
-                            self.pirad_score_combobox.destroy()
-                            del self.pirad_score_combobox
-                        
-                        if hasattr(self, 'additional_comments_separator'):
-                            self.additional_comments_separator.destroy()
-                            del self.additional_comments_separator
-                        
-                        if hasattr(self, 'additional_comments_label'):
-                            self.additional_comments_label.destroy()
-                            del self.additional_comments_label
-                        
-                        if hasattr(self, 'additional_comments_textbox'):
-                            self.additional_comments_textbox.destroy()
-                            del self.additional_comments_textbox
-                        
-                        if hasattr(self, 'toggle_lesion_button'):
-                            self.toggle_lesion_button.destroy()
-                            del self.toggle_lesion_button
-                        
-                        if hasattr(self, 'pen_setting_button'):
-                            self.pen_setting_button.destroy()
-                            del self.pen_setting_button
-
-                    shutil.rmtree(file_path_to_delete)
-                    messagebox.showinfo("Deleted", f"{scan_folder_to_delete} has been successfully deleted")
-
-                    # Update the viewer if the deleted scan set is currently open
-                    if scan_folder_to_delete == self.current_opened_scan:
-                        self.load_scan_viewer()
-
-                    self.delete_scan_window.destroy()
-                except OSError as e:
-                    print(f"Error deleting file {scan_folder_to_delete}: {e}")
-        else:
-            messagebox.showerror("Error", "Select a scan set to delete.")
-    
-    #Delete Scans Code Ending
-
-
- 
-
 if __name__ == "__main__":
     root = tk.Tk()
     app = MRIAnnotationTool(root)
