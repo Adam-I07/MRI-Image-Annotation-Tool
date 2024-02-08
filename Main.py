@@ -15,6 +15,7 @@ import uploadScan
 import deleteScan
 import displayScan
 import lesionToggle
+import penSetting
 
 class MRIAnnotationTool:
     def __init__(self, master):
@@ -441,10 +442,6 @@ class MRIAnnotationTool:
         # Redraw the canvas
         self.canvas.draw()
 
-    def choose_colour(self):
-        self.eraser_on = False
-        self.chosencolour = askcolor(color=self.chosencolour)[1]
-
     def on_mouse_press(self, event):
         if event.name == 'button_press_event':
             if self.active_button == self.drawing_button and event.button == 1:
@@ -531,10 +528,6 @@ class MRIAnnotationTool:
             next_available_lesion = f"lesion-{next_available_number}" if next_available_number is not None else None
         self.current_lesions_used.append(next_available_lesion)
         return next_available_lesion
-    
-    def update_pen_size(self, value):
-        # Update the line width when the scale is changed
-        self.line_width = int(value)
 
     def undo_last_line(self):
        # Check if there are any sequences of lines
@@ -786,29 +779,17 @@ class MRIAnnotationTool:
         self.lesion_visibility_manager = lesionToggle.LesionVisibilityManager(self.all_annotations, self.canvas, self.viewer_frame)
         # To toggle a lesion's visibility
         self.lesion_visibility_manager.toggle_lesion(lesion_to_toggle)
-
     
     def pen_setting(self):
-        self.pen_setting_window = tk.Tk()
-        self.pen_setting_window.title('Pen Settings')
-        self.pen_setting_window.geometry('200x150')
-        self.pen_setting_window.resizable(0, 0)
+        self.pen_settings_dialog = penSetting.PenSettingsDialog(self, self.line_width, self.choose_colour, self.update_pen_size)
 
-        self.pirads_scores_label = ttk.Label(self.pen_setting_window, text="Settings:", font=("Calibri", 20))        
-        self.pirads_scores_label.grid(row=1, column=0, padx=(50, 0), pady=(10, 0))
-        self.top_separator = ttk.Separator(self.pen_setting_window, orient="horizontal")
-        self.top_separator.grid(row=2, column=0, ipadx=50, padx=(50,0), pady=(10,0)) 
-        self.colour_button = ttk.Button(self.pen_setting_window, text="Colour", command=self.choose_colour)
-        self.colour_button.grid(row=3, column=0, padx=(40, 0), pady=(0,0))
-        self.choose_pen_size_label = ttk.Label(self.pen_setting_window, text="Pen Size:", font=("Calibri", 12))
-        self.choose_pen_size_label.grid(row=4, column=0, padx=(40, 0), pady=(0,0))
-        self.choose_pen_size_scale = tk.Scale(self.pen_setting_window, from_=1, to=10, orient='horizontal', command=self.update_pen_size, showvalue=False)
-        self.choose_pen_size_scale.set(self.line_width)
-        self.choose_pen_size_scale.grid(row=5, column=0, padx=(40, 0), pady=(0,0))
-        self.bottom_separator = ttk.Separator(self.pen_setting_window, orient="horizontal")
-        self.bottom_separator.grid(row=6, column=0, ipadx=50, padx=(50,0), pady=(10,0)) 
-
-        self.pen_setting_window.mainloop()
+    def choose_colour(self, chosen_colour):
+        self.eraser_on = False
+        self.chosencolour = chosen_colour
+    
+    def update_pen_size(self, value):
+        # Update the line width when the scale is changed
+        self.line_width = int(value)
 
     
 if __name__ == "__main__":
