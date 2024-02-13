@@ -8,7 +8,6 @@ import tkinter as tk
 from tkinter import ttk
 import os
 import numpy as np
-from tkinter.colorchooser import askcolor
 import json
 import matplotlib.lines as mlines
 import uploadScan
@@ -16,13 +15,16 @@ import deleteScan
 import displayScan
 import lesionToggle
 import penSetting
+from PIL import Image, ImageTk
+import toolTip
 
 class MRIAnnotationTool:
     def __init__(self, master):
         self.master = master
+        self.master.geometry("1100x700")
         self.master.title("MRI Annotation Tool")
-        self.master.geometry("1100x780")
         self.master.resizable(0, 0)
+        self.master.configure(bg='#cccccc')
 
         # Add a variable to track the pen drawing state
         self.drawing = False
@@ -41,25 +43,24 @@ class MRIAnnotationTool:
         self.current_opened_scan = None
         self.current_opened_lesion = None
         self.canvas = None
-        self.chosencolour = '#ff0000'  #default colour (red)
-        self.line_width = 2  # Default line width
+        self.chosencolour = '#ff0000'
+        self.line_width = 2
         self.display_scan_instance =  displayScan.ScanViewer(self)
+        self.scans_collective = []
 
         # Add canvas width and height attributes
         self.canvas_width = 0
         self.canvas_height = 0
 
+        style = ttk.Style()
+        style.theme_use('default')
+
         # Frame Creation
-        self.menu_frame = ttk.Frame(master, height=100, borderwidth=3, relief='sunken')
-        self.menu_frame.grid(row=0, column=0, columnspan=3, sticky='ew')  # Span across all columns
-
-        self.tool_frame = ttk.Frame(master, width=150, borderwidth=2, relief='sunken')
-        self.tool_frame.grid(row=1, column=0, sticky='nsew')
-
-        self.viewer_frame = ttk.Frame(master, width=600, borderwidth=2, relief='sunken')
+        self.menu_frame = tk.Frame(master, width=50, borderwidth=2, relief='sunken', bg='#cccccc')
+        self.menu_frame.grid(row=1, column=0, sticky='nsew')
+        self.viewer_frame = tk.Frame(master, width=600, borderwidth=2, relief='sunken', bg='#cccccc')
         self.viewer_frame.grid(row=1, column=1, sticky='nsew')
-
-        self.pirad_frame = ttk.Frame(master, width=250, borderwidth=2, relief='sunken')
+        self.pirad_frame = tk.Frame(master, width=220, borderwidth=2, relief='sunken', background='#cccccc')
         self.pirad_frame.grid(row=1, column=2, sticky='nsew')
 
         # Set weight for resizable rows and columns
@@ -68,32 +69,46 @@ class MRIAnnotationTool:
         self.master.grid_columnconfigure(1, weight=1)
         self.master.grid_columnconfigure(2, weight=1)
 
-        # Menu Widgets and Buttons
-        self.menu_title_label = ttk.Label(self.menu_frame, text="MRI Image Annotation Tool", font=("Caslon", 25))
-        self.menu_title_label.grid(row=0, column=0, padx=10, pady=10)
-        self.upload_scan_button = ttk.Button(self.menu_frame, text="Upload Scans", command=self.upload_scans)
-        self.upload_scan_button.grid(row=0, column=1, padx=(235,20))
-        self.display_scan_button = ttk.Button(self.menu_frame, text="Display Scans", command=self.display_scans)
-        self.display_scan_button.grid(row=0, column=2, padx=(0,20))
-        self.delete_scan_button = ttk.Button(self.menu_frame, text="Delete Scans", command=self.delete_scans)
-        self.delete_scan_button.grid(row=0, column=3, padx=(0,20))
-        self.exit_button = ttk.Button(self.menu_frame, text="Exit", command=self.exit_application)
-        self.exit_button.grid(row=0, column=4, padx=(0,10))
-
         # Viewer Widgets and Buttons
-        self.viewer_title_label = ttk.Label(self.viewer_frame, text="Scan Viewer", font=("Caslon", 22))
-        self.viewer_title_label.grid(row=0, column=0, padx=250)
-        self.scans_collective = []
-        self.load_scan_viewer()
+        self.viewer_title_label = tk.Label(self.viewer_frame, text="Scan Viewer", font=("Calibri", 22), foreground='black', background='#cccccc')
+        self.viewer_title_label.grid(row=0, column=0, padx=270)
         self.viewer_frame.grid_propagate(0)
 
         # Tool Widgets and Buttons
-        self.tool_title_label = ttk.Label(self.tool_frame, text="Tools", font=("Caslon", 22))
-        self.tool_title_label.grid(row=0, column=0, padx=(60,0), sticky=tk.W)
-        self.tool_frame.grid_propagate(0)
+        self.display_scan_icon = Image.open("icons/display-scan.png") 
+        self.display_scan_icon_resized = self.display_scan_icon.resize((65, 65))
+        self.display_scan_icon_final = ImageTk.PhotoImage(self.display_scan_icon_resized)
+        self.upload_scan_icon = Image.open("icons/upload-scan.png") 
+        self.upload_scan_icon_resized = self.upload_scan_icon.resize((65, 65))
+        self.upload_scan_icon_final = ImageTk.PhotoImage(self.upload_scan_icon_resized)
+        self.delete_scan_icon = Image.open("icons/delete-scan.png") 
+        self.delete_scan_icon_resized = self.delete_scan_icon.resize((65, 65))
+        self.delete_scan_icon_final = ImageTk.PhotoImage(self.delete_scan_icon_resized)
+        self.exit_icon = Image.open("icons/exit.png") 
+        self.exit_icon_resized = self.exit_icon.resize((65, 65))
+        self.exit_icon_final = ImageTk.PhotoImage(self.exit_icon_resized)
+
+        self.load_scan_viewer()
+        self.tool_title_label = tk.Label(self.menu_frame, text="Menu", font=("Calibri", 22), foreground='black', background='#cccccc')
+        self.tool_title_label.grid(row=0, column=0, padx=(26,0), sticky=tk.W)
+        self.menu_separator = ttk.Separator(self.menu_frame, orient="horizontal")
+        self.menu_separator.grid(row=1, column=0, columnspan=3, ipadx=40, padx=(15,0), pady=(10,0), sticky=tk.W)
+        self.upload_scan_button = tk.Button(self.menu_frame, image=self.upload_scan_icon_final, command=self.upload_scans, borderwidth=0, highlightthickness=0, width=45, height=45)
+        self.upload_scan_button.grid(row=2, column=0, padx=(30,0), pady=(5,0), sticky=tk.W)
+        self.create_tool_tip(self.upload_scan_button, "Upload scan")
+        self.display_scan_button = tk.Button(self.menu_frame, image=self.display_scan_icon_final, command=self.display_scans, borderwidth=0, highlightthickness=0, width=45, height=45)
+        self.display_scan_button.grid(row=3, column=0, padx=(30, 0), pady=(5,0), sticky=tk.W)
+        self.create_tool_tip(self.display_scan_button, "Display scan")
+        self.delete_scan_button = tk.Button(self.menu_frame, image=self.delete_scan_icon_final, command=self.delete_scans, borderwidth=0, highlightthickness=0, width=45, height=45)
+        self.delete_scan_button.grid(row=4, column=0, padx=(30, 0), pady=(5,0), sticky=tk.W)
+        self.create_tool_tip(self.delete_scan_button, "Delete scan")
+        self.exit_button = tk.Button(self.menu_frame, image=self.exit_icon_final, command=self.exit_application, borderwidth=0, highlightthickness=0, width=45, height=45)
+        self.exit_button.grid(row=5, column=0, padx=(27, 0), pady=(5,0), sticky=tk.W)
+        self.create_tool_tip(self.exit_button, "Exit application")
+        self.menu_frame.grid_propagate(0)
 
         # PI-RAD Frame Widgets and Buttons
-        self.pirad_title_label = ttk.Label(self.pirad_frame, text="PI-RADS", font=("Caslon", 22))
+        self.pirad_title_label = tk.Label(self.pirad_frame, text="PI-RADS", font=("Calibri", 22), foreground='black', background='#cccccc')
         self.pirad_title_label.grid(row=0, column=0, padx=100)
         self.pirad_frame.grid_propagate(0)
 
@@ -144,7 +159,6 @@ class MRIAnnotationTool:
         delete_scan = deleteScan.ScanSetDelete(self)
         delete_scan.delete_scans(self.current_opened_scan)
 
-    #Following code is the start for the Scan Viewer to be displayed on the Main Menu
     def load_scan_viewer(self):
         self.original_xlim = None
         self.original_ylim = None
@@ -161,6 +175,7 @@ class MRIAnnotationTool:
             scan_arr = mpimg.imread(self.current_scan)
             # Get the actual size of the image
             actual_height, actual_width = scan_arr.shape
+
             # Create a figure and subplot for displaying scans
             self.f = Figure(figsize=(actual_width / 100, actual_height / 100), dpi=120)
             self.a = self.f.add_subplot(111)
@@ -168,18 +183,20 @@ class MRIAnnotationTool:
             # Set aspect ratio to 'equal' to display the image in its actual size
             self.a.imshow(scan_arr, cmap='gray', aspect='equal')
             self.a.axis('off')
+
             # Remove extra whitespace around the image
             self.f.subplots_adjust(left=0, right=1, top=1, bottom=0)
             self.a.set_aspect('auto') 
 
             # Create a frame for the canvas
             self.canvas_frame = tk.Frame(self.viewer_frame)
-            self.canvas_frame.grid(row=1, column=0, padx=(0, 0), pady=(10, 0))
+            self.canvas_frame.grid(row=1, column=0, padx=(20, 0), pady=(10, 0))
             self.canvas = FigureCanvasTkAgg(self.f, self.canvas_frame)
+
             # Set canvas width and height
             self.canvas_width, self.canvas_height = self.f.get_size_inches() * self.f.dpi
 
-             # Bind mouse button press, release, and motion events for drawing
+            # Bind mouse button press, release, and motion events for drawing
             self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
             self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
             self.canvas.mpl_connect('motion_notify_event', self.draw_on_canvas)
@@ -192,100 +209,138 @@ class MRIAnnotationTool:
             # Load annotations and PI-RADS for the initial scan
             json_file_path = os.path.join("saved_scans", f"{self.current_opened_scan}", f"{self.current_opened_scan}_annotation_information.json")
             self.load_annotations_from_json(json_file_path)
-
-            # Override the home method to use custom reset_zoom
             self.toolbar_home = self.reset_zoom
-            self.toolbar_frame = ttk.Frame(self.viewer_frame)
-            self.scan_scale = ttk.Scale(self.viewer_frame, orient="horizontal", from_=1, to=len(self.scans_collective), command=self.next_scan)
-            self.scan_scale.grid(row=2, column=0, padx=(50,0))
 
-            # Create Viewing Widgets
-            self.viewing_separator = ttk.Separator(self.tool_frame, orient="horizontal")
-            self.viewing_separator.grid(row=8, column=0, columnspan=4, ipadx=70, padx=(20,0), pady=(20,0))
-            self.viewing_widgets_label = ttk.Label(self.tool_frame, text="     Viewing\nFunctionality:")
-            self.viewing_widgets_label.grid(row=9, column=0, padx=(40,0), pady=(10,0))
-            self.zoom_button = ttk.Button(self.tool_frame, text="Zoom", command=self.activate_zoom)
-            self.zoom_button.grid(row=10, column=0, padx=(40,0))
-            self.home_view_button = ttk.Button(self.tool_frame, text="Home View", command=self.reset_view)
-            self.home_view_button.grid(row=11, column=0, padx=(40, 0))
-            self.coordinates_label = ttk.Label(self.viewer_frame, text="Coordinates: (0, 0)", font=("Calibri", 12))
-            self.coordinates_label.grid(row=12, column=0, padx=(0, 310))
-            self.end_separator = ttk.Separator(self.tool_frame, orient="horizontal")
-            self.end_separator.grid(row=13, column=0, columnspan=4, ipadx=70, padx=(10,0), pady=(20,0))
+            # Load viewer frame, scale and coordinates label
+            self.toolbar_frame = ttk.Frame(self.viewer_frame)
+            self.scan_scale = tk.Scale(self.viewer_frame, orient="horizontal", from_=1, to=len(self.scans_collective), showvalue=False, command=self.next_scan, background="#cccccc")
+            self.scan_scale.grid(row=2, column=0, padx=(0,0), pady=(10,0))
+            self.coordinates_label = tk.Label(self.viewer_frame, text="Coordinates: (0, 0)", font=("Calibri", 12), foreground='black', background='#cccccc')
+            self.coordinates_label.grid(row=2, column=0, padx=(0, 400), pady=(7,0))
+
+            # Load the icons for buttons using PIL
+            self.pen_icon = Image.open("icons/pen.png") 
+            self.pen_icon_resized = self.pen_icon.resize((100, 100)) 
+            self.pen_icon_final = ImageTk.PhotoImage(self.pen_icon_resized)
+            self.undo_icon = Image.open("icons/rubber.png") 
+            self.undo_icon_resized = self.undo_icon.resize((55, 55))
+            self.undo_icon_final = ImageTk.PhotoImage(self.undo_icon_resized)
+            self.setting_icon = Image.open("icons/setting.png") 
+            self.setting_icon_resized = self.setting_icon.resize((55, 55))
+            self.setting_icon_final = ImageTk.PhotoImage(self.setting_icon_resized)
+            self.zoom_icon = Image.open("icons/zoom.png") 
+            self.zoom_icon_resized = self.zoom_icon.resize((50, 50))
+            self.zoom_icon_final = ImageTk.PhotoImage(self.zoom_icon_resized)
+            self.home_icon = Image.open("icons/home.png") 
+            self.home_icon_resized = self.home_icon.resize((50, 50))
+            self.home_icon_final = ImageTk.PhotoImage(self.home_icon_resized)
+            self.load_pirad_icon = Image.open("icons/load-pirad-form.png")
+            self.load_pirad_icon_resized = self.load_pirad_icon.resize((50, 50))
+            self.load_pirad_icon_final = ImageTk.PhotoImage(self.load_pirad_icon_resized)
+            self.toggle_icon = Image.open("icons/toggle.png")
+            self.toggle_icon_resized = self.toggle_icon.resize((50, 50))
+            self.toggle_icon_final = ImageTk.PhotoImage(self.toggle_icon_resized)
+            self.save_icon = Image.open("icons/save.png")
+            self.save_icon_resized = self.save_icon.resize((50, 50))
+            self.save_icon_final = ImageTk.PhotoImage(self.save_icon_resized)
 
             # Annotation Tools Widgets
-            self.tool_separator = ttk.Separator(self.tool_frame, orient="horizontal")
-            self.tool_separator.grid(row=1, column=0, columnspan=4, ipadx=70, padx=(20,0), pady=(10,0))
-            self.annotation_tool_label = ttk.Label(self.tool_frame, text="Annotation\n     Tools:", font=("Calibri", 14))
-            self.annotation_tool_label.grid(row=2, column=0, padx=(40, 0), pady=(5, 0))
-            self.drawing_button = ttk.Button(self.tool_frame, text="Pen", command=self.activate_drawing)
-            self.drawing_button.grid(row=3, column=0, padx=(40, 0), pady=(0,0))
-            self.undo_button = ttk.Button(self.tool_frame, text="Undo", command=self.activate_undo)
-            self.undo_button.grid(row=5, column=0, padx=(40, 0), pady=(0,0))
-            self.pen_setting_button = ttk.Button(self.tool_frame, text="Pen Settings", command=self.pen_setting)
-            self.pen_setting_button.grid(row=6, column=0, padx=(40, 0), pady=(0,0))
-            
+            self.tool_separator = ttk.Separator(self.menu_frame, orient="horizontal")
+            self.tool_separator.grid(row=6, column=0, columnspan=3, ipadx=40, padx=(15,0), pady=(5,0), sticky=tk.W)
+            self.annotation_tool_label = tk.Label(self.menu_frame, text="Annotation\n  Tools:", font=("Calibri", 14), foreground='black', background='#cccccc')
+            self.annotation_tool_label.grid(row=7, column=0, padx=(17, 0), pady=(5, 0), sticky=tk.W)
+            self.tool_title_seperator = ttk.Separator(self.menu_frame, orient="horizontal")
+            self.tool_title_seperator.grid(row=8, column=0, columnspan=4, ipadx=40, padx=(15,0), pady=(5,0), sticky=tk.W)
+            self.drawing_button = tk.Button(self.menu_frame, image=self.pen_icon_final, command=self.activate_drawing, borderwidth=0, highlightthickness=0, width=45, height=45)
+            self.drawing_button.grid(row=9, column=0, padx=(30, 0), pady=(5,0), sticky=tk.W)
+            self.create_tool_tip(self.drawing_button, "Draw annotation")
+            self.undo_button = tk.Button(self.menu_frame, image=self.undo_icon_final, command=self.activate_undo, borderwidth=0, highlightthickness=0, width=45, height=45)
+            self.undo_button.grid(row=10, column=0, padx=(30, 0), pady=(0,0), sticky=tk.W)
+            self.create_tool_tip(self.undo_button, "Erase annotation")
+            self.pen_setting_button = tk.Button(self.menu_frame, image=self.setting_icon_final, command=self.pen_setting, borderwidth=0, highlightthickness=0, width=45, height=45)
+            self.pen_setting_button.grid(row=11, column=0, padx=(30, 0), pady=(0,0), sticky=tk.W)
+            self.create_tool_tip(self.pen_setting_button, "Pen Settings")
+
+            # Create Viewing Widgets
+            self.viewing_separator = ttk.Separator(self.menu_frame, orient="horizontal")
+            self.viewing_separator.grid(row=12, column=0, columnspan=4, ipadx=40, padx=(15,0), pady=(5,0), sticky=tk.W)
+            self.viewing_widgets_label = tk.Label(self.menu_frame, text="Viewing\n Functionality:", font=("calibri", 14), foreground='black', background='#cccccc')
+            self.viewing_widgets_label.grid(row=13, column=0, padx=(5,0), pady=(10,0), sticky=tk.W)
+            self.viewing_title_seperator = ttk.Separator(self.menu_frame, orient="horizontal")
+            self.viewing_title_seperator.grid(row=14, column=0, columnspan=4, ipadx=40, padx=(15,0), pady=(5,0), sticky=tk.W)
+            self.zoom_button = tk.Button(self.menu_frame, image=self.zoom_icon_final, command=self.activate_zoom, borderwidth=0, highlightthickness=0, width=45, height=45)
+            self.zoom_button.grid(row=15, column=0, padx=(30,0), pady=(5,0), sticky=tk.W)
+            self.create_tool_tip(self.zoom_button, "Zoom")
+            self.home_view_button = tk.Button(self.menu_frame, image=self.home_icon_final, command=self.reset_view, borderwidth=0, highlightthickness=0, width=45, height=45)
+            self.home_view_button.grid(row=16, column=0, padx=(30, 0), sticky=tk.W)
+            self.create_tool_tip(self.home_view_button, "Home View")
+            self.end_separator = ttk.Separator(self.menu_frame, orient="horizontal")
+            self.end_separator.grid(row=17, column=0, columnspan=4, ipadx=40, padx=(15,0), pady=(10,0), sticky=tk.W)
+
             # PI-RADS AND Lesions Forms Widgets      
             self.lesion_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
             self.lesion_separator.grid(row=1, column=0, columnspan=4, ipadx=120, pady=(10,0))  
-            self.select_lesion_label = ttk.Label(self.pirad_frame, text="Select \nLesion:", font=("Calibri", 14))        
+            self.select_lesion_label = tk.Label(self.pirad_frame, text="Select \nLesion:", font=("Calibri", 14), foreground='black', background='#cccccc')        
             self.select_lesion_label.grid(row=2, column=0, padx=(0, 205), pady=(0, 0))         
             self.select_lesion_combobox = ttk.Combobox(self.pirad_frame, values=self.current_lesions_used, state="readonly", width=7)
             self.select_lesion_combobox.grid(row=2, column=0, padx=(0, 50), pady=(0, 0))
-            self.load_lesion_button = ttk.Button(self.pirad_frame, text="Load", command=lambda:self.load_chosen_lesion_pirad_information(self.select_lesion_combobox.get()))
-            self.load_lesion_button.grid(row=2, column=0, padx=(140, 0), pady=(20, 0))
-            self.toggle_lesion_button = ttk.Button(self.pirad_frame, text="Toggle", command=lambda:self.toggle_lesion(self.select_lesion_combobox.get()))
-            self.toggle_lesion_button.grid(row=2, column=0, padx=(140, 0), pady=(0, 30))
+            self.load_lesion_button = tk.Button(self.pirad_frame, image=self.load_pirad_icon_final, command=lambda:self.load_chosen_lesion_pirad_information(self.select_lesion_combobox.get()), borderwidth=0, highlightthickness=0, width=45, height=45)
+            self.load_lesion_button.grid(row=2, column=0, padx=(100, 0), pady=(0, 0))
+            self.create_tool_tip(self.load_lesion_button, "Load Selected Lesions PI-RADS Form")
+            self.toggle_lesion_button = tk.Button(self.pirad_frame, image=self.toggle_icon_final, command=lambda: self.toggle_lesion(self.select_lesion_combobox.get()), borderwidth=0, highlightthickness=0, width=45, height=45)
+            self.toggle_lesion_button.grid(row=2, column=0, padx=(190, 0), pady=(0, 0))
+            self.create_tool_tip(self.toggle_lesion_button, "Toggle Selected Lesion")
             self.t2w_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
             self.t2w_separator.grid(row=3, column=0,columnspan=4, ipadx=120, pady=(0,0))  
             self.t2w_and_dwi_values = ["1", "2", "3", "4", "5"]
-            self.t2_weighted_imaging_label = ttk.Label(self.pirad_frame, text="T2 Weighted Imgaing (T2W):", font=("Calibri", 13))        
+            self.t2_weighted_imaging_label = tk.Label(self.pirad_frame, text="T2 Weighted Imgaing (T2W):", font=("Calibri", 13), foreground='black', background='#cccccc')        
             self.t2_weighted_imaging_label.grid(row=4, column=0, padx=(0, 75), pady=(10, 0))
-            self.t2w_peripheral_zone_label = ttk.Label(self.pirad_frame, text="T2W Peripheral Zone:", font=("Calibri", 12))  
+            self.t2w_peripheral_zone_label = tk.Label(self.pirad_frame, text="T2W Peripheral Zone:", font=("Calibri", 12), foreground='black', background='#cccccc')  
             self.t2w_peripheral_zone_label.grid(row=5, column=0, padx=(0, 100), pady=(0, 0))
             self.t2w_peripheral_zone_combobox = ttk.Combobox(self.pirad_frame, values=self.t2w_and_dwi_values, state="readonly", width=5)
             self.t2w_peripheral_zone_combobox.grid(row=6, column=0, padx=(0, 155), pady=(0, 0))
-            self.t2w_transition_zone_label = ttk.Label(self.pirad_frame, text="T2W Transition Zone:", font=("Calibri", 12))  
+            self.t2w_transition_zone_label = tk.Label(self.pirad_frame, text="T2W Transition Zone:", font=("Calibri", 12), foreground='black', background='#cccccc')  
             self.t2w_transition_zone_label.grid(row=7, column=0, padx=(0, 100), pady=(0, 0))
             self.t2w_transition_zone_combobox = ttk.Combobox(self.pirad_frame, values=self.t2w_and_dwi_values, state="readonly", width=5)
             self.t2w_transition_zone_combobox.grid(row=8, column=0, padx=(0, 155), pady=(0, 0))
             self.dwi_top_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
             self.dwi_top_separator.grid(row=9, column=0,columnspan=4, ipadx=120, pady=(10,0))  
-            self.diffusion_weighted_imaging_label = ttk.Label(self.pirad_frame, text="Diffusion Weighted Imaging (DWI):", font=("Calibri", 13))        
+            self.diffusion_weighted_imaging_label = tk.Label(self.pirad_frame, text="Diffusion Weighted Imaging (DWI):", font=("Calibri", 13), foreground='black', background='#cccccc')        
             self.diffusion_weighted_imaging_label.grid(row=10, column=0, padx=(0, 40), pady=(10, 0))
-            self.diffusion_weighted_peripheral_zone_label = ttk.Label(self.pirad_frame, text="DWI Peripheral Zone:", font=("Calibri", 12))  
+            self.diffusion_weighted_peripheral_zone_label = tk.Label(self.pirad_frame, text="DWI Peripheral Zone:", font=("Calibri", 12), foreground='black', background='#cccccc')  
             self.diffusion_weighted_peripheral_zone_label.grid(row=11, column=0, padx=(0, 100), pady=(0, 0))
             self.diffusion_weighted_peripheral_zone_combobox = ttk.Combobox(self.pirad_frame, values=self.t2w_and_dwi_values, state="readonly", width=5)
             self.diffusion_weighted_peripheral_zone_combobox.grid(row=12, column=0, padx=(0, 155), pady=(0, 0))
-            self.diffusion_weighted_transition_zone_label = ttk.Label(self.pirad_frame, text="DWI Transition Zone:", font=("Calibri", 12))  
+            self.diffusion_weighted_transition_zone_label = tk.Label(self.pirad_frame, text="DWI Transition Zone:", font=("Calibri", 12), foreground='black', background='#cccccc')  
             self.diffusion_weighted_transition_zone_label.grid(row=13, column=0, padx=(0, 100), pady=(0, 0))
             self.diffusion_weighted_transition_zone_combobox = ttk.Combobox(self.pirad_frame, values=self.t2w_and_dwi_values, state="readonly", width=5)
             self.diffusion_weighted_transition_zone_combobox.grid(row=14, column=0, padx=(0, 155), pady=(0, 0))
             self.dynamic_contrast_enhanced_imaging_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
-            self.dynamic_contrast_enhanced_imaging_separator.grid(row=15, column=0,columnspan=4, ipadx=120, pady=(10,0)) 
-            self.dynamic_contrast_enhanced_imaging_label = ttk.Label(self.pirad_frame, text="Dynamic Contrast Enhanced \nImaging (DCE):", font=("Calibri", 13))        
-            self.dynamic_contrast_enhanced_imaging_label.grid(row=16, column=0, padx=(0, 75), pady=(10, 0))
+            self.dynamic_contrast_enhanced_imaging_separator.grid(row=15, column=0,columnspan=4, ipadx=120, pady=(10,1)) 
+            self.dynamic_contrast_enhanced_imaging_label = tk.Label(self.pirad_frame, text="Dynamic Contrast Enhanced \nImaging (DCE):", font=("Calibri", 13), foreground='black', background='#cccccc', anchor="w", justify=tk.LEFT)        
+            self.dynamic_contrast_enhanced_imaging_label.grid(row=16, column=0, padx=(0, 75), pady=(5, 0))
             self.dynamic_contrast_enhanced_imaging_values = ["Positive", "Negative"]
             self.dynamic_contrast_enhanced_imaging_combobox = ttk.Combobox(self.pirad_frame, values=self.dynamic_contrast_enhanced_imaging_values, state="readonly", width=8)
             self.dynamic_contrast_enhanced_imaging_combobox.grid(row=17, column=0, padx=(0, 155), pady=(0, 0))
             self.pirads_score_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
             self.pirads_score_separator.grid(row=18, column=0,columnspan=4, ipadx=120, pady=(10,0))
-            self.pirads_scores_label = ttk.Label(self.pirad_frame, text="PI-RADS Score:", font=("Calibri", 13))        
+            self.pirads_scores_label = tk.Label(self.pirad_frame, text="PI-RADS Score:", font=("Calibri", 13), foreground='black', background='#cccccc')        
             self.pirads_scores_label.grid(row=19, column=0, padx=(0, 153), pady=(10, 0))
             self.pirads_scores_values = ["1 (Very Low, Cancer is highly unlikely)", "2 (Low, Cancer is unlikely)", "3 (Intermediate, Cancer is equivocal)", "4 (High, Cancer is likely)", "5 (Very High, Cancer is highly likely)"]
             self.pirad_score_combobox = ttk.Combobox(self.pirad_frame, values=self.pirads_scores_values, state="readonly", width=26)
             self.pirad_score_combobox.grid(row=20, column=0, padx=(0, 0), pady=(0, 0))
             self.additional_comments_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
             self.additional_comments_separator.grid(row=21, column=0,columnspan=4, ipadx=120, pady=(10,0))
-            self.additional_comments_label = ttk.Label(self.pirad_frame, text="Additional Comments:", font=("Calibri", 13))        
+            self.additional_comments_label = tk.Label(self.pirad_frame, text="Additional Comments:", font=("Calibri", 13), foreground='black', background='#cccccc')        
             self.additional_comments_label.grid(row=22, column=0, padx=(0, 120), pady=(5, 0))
-            self.additional_comments_textbox = tk.Text(self.pirad_frame, height=8, width=35)
+            self.additional_comments_textbox = tk.Text(self.pirad_frame, height=8, width=30, background='#CCCCCC', foreground="black", highlightthickness=1)
             self.additional_comments_textbox.grid(row=23, column=0, padx=(0,0), pady=(0,10))
             self.save_button_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
             self.save_button_separator.grid(row=24, column=0,columnspan=4, ipadx=120, pady=(0,0))
-            self.save_annotations_button = ttk.Button(self.pirad_frame, text="Save", command=lambda:self.save_current_opened_lesion_pirads(self.current_opened_lesion))
-            self.save_annotations_button.grid(row=25, column=0, padx=(0,0), pady=(5,0))
-
+            self.save_annotations_button = tk.Button(self.pirad_frame, image=self.save_icon_final, command=lambda:self.save_current_opened_lesion_pirads(self.current_opened_lesion), borderwidth=0, highlightthickness=0, width=45, height=45)
+            self.save_annotations_button.grid(row=30, column=0, padx=(0,0), pady=(5,0))
+            self.create_tool_tip(self.save_annotations_button, "Save Annotations")
+            
             # Create a new toolbar instance
             self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
             self.toolbar.update()
@@ -295,8 +350,8 @@ class MRIAnnotationTool:
             self.zoom_source = None
         else:
             # Display a message if no scans are available
-            self.no_scans_label = ttk.Label(self.viewer_frame, text="No scan set is currently opened.", font=("Caslon", 20))
-            self.no_scans_label.grid(row=2, column=0, padx=(10, 0), pady=(200))
+            self.no_scans_label = tk.Label(self.viewer_frame, text="No scan set is currently opened.", font=("Calibri", 20), foreground='black', background='#cccccc')
+            self.no_scans_label.grid(row=2, column=0, padx=(50, 0), pady=(250, 0))
 
     def next_scan(self, scan_number):
         scan_number_int = int(float(scan_number)) - 1
@@ -339,7 +394,6 @@ class MRIAnnotationTool:
         for sequence in self.all_annotations:
             for line in sequence:
                 self.a.add_line(line)
-
         # Redraw the canvas
         self.canvas.draw()
 
@@ -790,6 +844,15 @@ class MRIAnnotationTool:
     def update_pen_size(self, value):
         # Update the line width when the scale is changed
         self.line_width = int(value)
+    
+    def create_tool_tip(self, widget, text):
+        tool_tip = toolTip.ToolTip(widget)  # Create a ToolTip object for the widget
+        def enter(event):
+            tool_tip.showtip(text)
+        def leave(event):
+            tool_tip.hidetip()
+        widget.bind('<Enter>', enter)
+        widget.bind('<Leave>', leave)
 
     
 if __name__ == "__main__":

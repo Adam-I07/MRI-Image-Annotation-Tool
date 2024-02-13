@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import os
+from PIL import Image, ImageTk
+import toolTip
 
 class ScanViewer:
     def __init__(self, parent_app):
@@ -8,10 +10,17 @@ class ScanViewer:
         self.scans_collected = []
 
     def display_scans(self):
-        self.display_scans_window = tk.Tk()
+        self.display_scans_window = tk.Toplevel()
         self.display_scans_window.title('Display Scan')
-        self.display_scans_window.geometry('430x130')
+        self.display_scans_window.geometry('340x110')
         self.display_scans_window.resizable(0, 0)
+        self.display_scans_window.configure(bg='#cccccc')
+        style = ttk.Style()
+        style.theme_use('default')
+
+        open_button_icon = Image.open("icons/open-folder.png") 
+        open_button_icon_resized = open_button_icon.resize((25, 25))
+        open_button_icon_final = ImageTk.PhotoImage(open_button_icon_resized)
 
         current_folders = []
         save_scan_folder = "saved_scans"
@@ -20,18 +29,16 @@ class ScanViewer:
         if '.DS_Store' in current_folders:
             current_folders.remove('.DS_Store')
 
-        self.display_scan_window_name_label = ttk.Label(self.display_scans_window, text="Display Scan", font=("Caslon", 22))
-        self.display_scan_window_name_label.grid(row=0, column=0, padx=(140,0), pady=10)
-
-        self.select_scan_label = ttk.Label(self.display_scans_window, text="Select a scan set:", font=("Calibri", 12))
-        self.select_scan_label.grid(row=1, column=0, padx=(10,0), sticky='w')
-
-        self.select_scan_set_combobox = ttk.Combobox(self.display_scans_window, font=('Arial', 12, 'bold'), width=40, values=current_folders)
-        self.select_scan_set_combobox.grid(row=2, column=0, padx=(10,0), sticky='w')
-        self.select_scan_set_combobox['state'] = 'readonly'
-
-        self.load_scan_button = ttk.Button(self.display_scans_window, text="Load", command=lambda: self.display_scan_open(self.select_scan_set_combobox.get()))
-        self.load_scan_button.grid(row=2, column=1)
+        display_scan_window_name_label = tk.Label(self.display_scans_window, text="Display Scan", font=("Calibri", 22), foreground='black', background='#cccccc')
+        display_scan_window_name_label.grid(row=0, column=0, padx=(50,0), pady=10)
+        select_scan_label = tk.Label(self.display_scans_window, text="Select a scan set:", font=("Calibri", 12), foreground='black', background='#cccccc')
+        select_scan_label.grid(row=1, column=0, padx=(10,0), sticky='w')
+        select_scan_set_combobox = ttk.Combobox(self.display_scans_window, font=('Arial', 12, 'bold'), width=40, values=current_folders)
+        select_scan_set_combobox.grid(row=2, column=0, padx=(10,0), sticky='w')
+        select_scan_set_combobox['state'] = 'readonly'
+        load_scan_button = tk.Button(self.display_scans_window, image=open_button_icon_final, command=lambda: self.display_scan_open(select_scan_set_combobox.get()), borderwidth=0, highlightthickness=0, width=20, height=20)
+        load_scan_button.grid(row=2, column=1, padx=(5,0))
+        self.create_tool_tip(load_scan_button, "Load Scan Set")
 
         self.display_scans_window.mainloop()
 
@@ -57,3 +64,12 @@ class ScanViewer:
                 self.parent_app.load_scan_viewer()  # Update the viewer with the selected scans
         else:
             messagebox.showerror('Error', 'Select a scan set please')
+    
+    def create_tool_tip(self, widget, text):
+        tool_tip = toolTip.ToolTip(widget)  # Create a ToolTip object for the widget
+        def enter(event):
+            tool_tip.showtip(text)
+        def leave(event):
+            tool_tip.hidetip()
+        widget.bind('<Enter>', enter)
+        widget.bind('<Leave>', leave)

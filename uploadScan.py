@@ -6,27 +6,35 @@ import cv2 as cv
 import json
 import pydicom as PDCM
 import numpy as np
+from PIL import Image, ImageTk
+import toolTip
 
 class scanUploader:
     def __init__(self):
         self.upload_scan_window = None
 
     def upload_scans(self):
-        self.upload_scan_window = tk.Tk()
+        self.upload_scan_window = tk.Toplevel()
         self.upload_scan_window.title('Upload Scan')
-        self.upload_scan_window.geometry('400x130')
+        self.upload_scan_window.geometry('300x120')
         self.upload_scan_window.resizable(0, 0)
+        self.upload_scan_window.configure(bg='#cccccc')
 
-        self.upload_scan_window_name_label = ttk.Label(self.upload_scan_window, text="Upload Scans", font=("Caslon", 22))
-        self.upload_scan_window_name_label.grid(row=0, column=0, padx=(140, 0), pady=10)
-        self.enter_scan_folder_name_label = ttk.Label(self.upload_scan_window, text="Enter a name for the scans:", font=("Calibri", 12))
-        self.enter_scan_folder_name_label.grid(row=1, column=0, padx=(10, 0), sticky='w')
-        self.enter_scan_name_entry = ttk.Entry(self.upload_scan_window, font=('Arial', 10, 'bold'), width=40)
+        upload_s_button_icon = Image.open("icons/upload-button.png") 
+        upload_s_button_icon_resized = upload_s_button_icon.resize((25, 25))
+        upload_s_button_icon_final = ImageTk.PhotoImage(upload_s_button_icon_resized)
+
+        upload_scan_window_name_label = tk.Label(self.upload_scan_window, text="Upload Scans", font=("Calibri", 22), foreground='black', background='#cccccc')
+        upload_scan_window_name_label.grid(row=0, column=0, padx=(25, 0), pady=10)
+        enter_scan_folder_name_label = tk.Label(self.upload_scan_window, text="Enter a name for the scans:", font=("Calibri", 12), foreground='black', background='#cccccc')
+        enter_scan_folder_name_label.grid(row=1, column=0, padx=(10, 0), sticky='w')
+        self.enter_scan_name_entry = tk.Entry(self.upload_scan_window, font=('Arial', 10, 'bold'), width=40, background="#cccccc", foreground="black", highlightthickness=0)
         self.enter_scan_name_entry.grid(row=2, column=0, padx=(10, 0), sticky='w')
-        self.scan_name_button = ttk.Button(self.upload_scan_window, text="Upload", command=lambda: self.upload_scan_folder(self.enter_scan_name_entry.get()))
-        self.scan_name_button.grid(row=2, column=1)
-        self.enter_scan_folder_name = ttk.Label(self.upload_scan_window, text="Note: Do not enter spaces rather use - or _", font=("Calibri", 8))
-        self.enter_scan_folder_name.grid(row=3, column=0, padx=(10, 0), sticky='w')
+        scan_name_button = tk.Button(self.upload_scan_window, image=upload_s_button_icon_final, borderwidth=0, highlightthickness=0, width=20, height=20, command=lambda: self.upload_scan_folder(self.enter_scan_name_entry.get()))
+        scan_name_button.grid(row=2, column=0, padx=(265,0), pady=(0,3))
+        self.create_tool_tip(scan_name_button, "Upload")
+        enter_scan_folder_name = tk.Label(self.upload_scan_window, text="Note: Do not enter spaces rather use - or _", font=("Calibri", 8), foreground='black', background='#cccccc')
+        enter_scan_folder_name.grid(row=3, column=0, padx=(10, 0), sticky='w')
 
         self.upload_scan_window.mainloop()
 
@@ -75,12 +83,12 @@ class scanUploader:
                                 'lesion_information': []
                             })
                         
-                        self.save_scan_set_to_json(scan_folder_name, scan_data)
                         messagebox.showinfo('Scans Uploaded', 'Scans have been uploaded successfully.')
-
+                        self.save_scan_set_to_json(scan_folder_name, scan_data)
                         self.upload_scan_window.destroy()
                     except OSError as e:
-                        messagebox.showerror('Error', f'Error creating folder: {e}')
+                        messagebox.showerror('Error', f'Error creating folder')
+                    
         else:
             messagebox.showerror('Error', 'Enter a folder name.')
 
@@ -126,3 +134,11 @@ class scanUploader:
 
         return New_Img, Instance_Number
 
+    def create_tool_tip(self, widget, text):
+        tool_tip = toolTip.ToolTip(widget)  # Create a ToolTip object for the widget
+        def enter(event):
+            tool_tip.showtip(text)
+        def leave(event):
+            tool_tip.hidetip()
+        widget.bind('<Enter>', enter)
+        widget.bind('<Leave>', leave)
