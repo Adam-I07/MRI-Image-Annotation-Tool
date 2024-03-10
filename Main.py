@@ -17,6 +17,7 @@ import lesionToggle
 import penSetting
 from PIL import Image, ImageTk
 import toolTip
+from semantic_segmentation import SemanticSegmentation
 
 class MRIAnnotationTool:
     def __init__(self, master):
@@ -243,6 +244,9 @@ class MRIAnnotationTool:
             self.save_icon = Image.open("icons/save.png")
             self.save_icon_resized = self.save_icon.resize((50, 50))
             self.save_icon_final = ImageTk.PhotoImage(self.save_icon_resized)
+            self.segmentation_icon = Image.open("icons/segment.png")
+            self.segmentation_icon_resized = self.segmentation_icon.resize((50, 50))
+            self.segmentation_icon_final = ImageTk.PhotoImage(self.segmentation_icon_resized)
 
             # Annotation Tools Widgets
             self.tool_separator = ttk.Separator(self.menu_frame, orient="horizontal")
@@ -276,6 +280,9 @@ class MRIAnnotationTool:
             self.create_tool_tip(self.home_view_button, "Home View")
             self.end_separator = ttk.Separator(self.menu_frame, orient="horizontal")
             self.end_separator.grid(row=17, column=0, columnspan=4, ipadx=40, padx=(15,0), pady=(10,0), sticky=tk.W)
+            self.semantic_segmentation_button = tk.Button(self.menu_frame, image=self.segmentation_icon_final, command=lambda: self.segment_scan(self.current_scan), borderwidth=0, highlightthickness=0, width=45, height=45)
+            self.semantic_segmentation_button.grid(row=18, column=0, padx=(30, 0), pady=(5,0), sticky=tk.W)
+            self.create_tool_tip(self.semantic_segmentation_button, "Segment Scan")
 
             # PI-RADS AND Lesions Forms Widgets      
             self.lesion_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
@@ -853,6 +860,13 @@ class MRIAnnotationTool:
             tool_tip.hidetip()
         widget.bind('<Enter>', enter)
         widget.bind('<Leave>', leave)
+    
+    def segment_scan(self, scan_path):
+        # Create an instance of the SemanticSegmentation class
+        print(scan_path)
+        segmenter = SemanticSegmentation()
+        # Call the segment_scan method with the path to your scan
+        segmenter.segment_scan(scan_path)
 
     
 if __name__ == "__main__":
