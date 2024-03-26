@@ -8,6 +8,7 @@ import pydicom as PDCM
 import numpy as np
 from PIL import Image, ImageTk
 import toolTip
+import shutil
 
 class scanUploader:
     def __init__(self):
@@ -45,52 +46,66 @@ class scanUploader:
             json.dump(scan_data, json_file)
 
     def upload_scan_folder(self, scan_folder_name):
-        if scan_folder_name:
-            if ' ' in scan_folder_name:
-                messagebox.showerror('Error', 'Folder name cannot contain spaces! Please try again with a different folder name.')
-            else:
-                save_scan_folder = "saved_scans"
-                get_folder_named = os.listdir(save_scan_folder)
-                current_folders = get_folder_named
-                if '.DS_Store' in current_folders:
-                    current_folders.remove('.DS_Store')
-                if scan_folder_name in current_folders:
-                    messagebox.showerror('Error', 'Folder name already exists please enter a new name.')
+        if ' ' in scan_folder_name:
+            messagebox.showerror('Error', 'Folder name cannot contain spaces! Please try again with a different folder name.')
+            return
+
+        save_scan_folder = "saved_scans"
+        get_folder_named = os.listdir(save_scan_folder)
+        current_folders = get_folder_named
+        if '.DS_Store' in current_folders:
+            current_folders.remove('.DS_Store')
+        if scan_folder_name in current_folders:
+            messagebox.showerror('Error', 'Folder name already exists please enter a new name.')
+            return
+
+        try:
+            new_folder_path = os.path.join(save_scan_folder, scan_folder_name)        
+        except OSError as e:
+            messagebox.showerror('Error', f'Error creating folder: {e}')
+            shutil.rmtree(new_folder_path)    
+
+        try:
+            os.makedirs(new_folder_path, exist_ok=True)
+            messagebox.showinfo('Select Folder', 'Select the folder where your scans you wish to upload are present.')
+            filename = askdirectory()
+            current_scans_folder = filename
+            
+            input_scans_list = os.listdir(current_scans_folder)
+            input_scans_list.sort()
+
+            scan_data = []
+
+            for i, scan_file in enumerate(input_scans_list):
+                file_path = os.path.join(current_scans_folder, scan_file)
+                file_extension = os.path.splitext(scan_file)[1].lower()
+                if file_extension in ['.png', '.jpeg', '.jpg']:
+                    image = cv.imread(file_path, cv.IMREAD_UNCHANGED)
+                    if image is None:
+                        continue  # If the image cannot be read, skip it
+                    cv.imwrite(os.path.join(new_folder_path, f"{i:04d}.png"), image)
+                    scan_id = f"{i:04d}.png"
+
+                    actual_height, actual_width = image.shape[:2]
+                elif file_extension == '.dcm':
+                    image, instance_number = self.dicom_to_png(file_path)
+                    cv.imwrite(os.path.join(new_folder_path, f"{instance_number - 1:04d}.png"), image)
+                    scan_id = f"{instance_number - 1:04d}.png"
                 else:
-                    new_folder_path = os.path.join(save_scan_folder, scan_folder_name)
-                    try:
-                        os.makedirs(new_folder_path)
-                        messagebox.showinfo('Select Folder', 'Select the folder where your scans you wish to upload are present.')
-                        filename = askdirectory()
-                        current_scans_folder = filename
-                        
-                        input_scans_list = os.listdir(current_scans_folder)
-                        input_scans_list.sort()
+                    continue  # Skip non-image files
 
-                        if os.path.isdir(new_folder_path) is False:
-                            os.mkdir(new_folder_path)
-
-                        scan_data = []
-
-                        for i in range(0, len(input_scans_list)):
-                            dicom_path = os.path.join(current_scans_folder, input_scans_list[i])
-                            output_scans, instance_number = self.dicom_to_png(dicom_path)
-                            cv.imwrite(os.path.join(new_folder_path, f"{instance_number - 1:04d}.png"), output_scans)
-
-                            scan_data.append({
-                                'scan_id': f"{instance_number - 1:04d}.png",
-                                'coordinates': [],
-                                'lesion_information': []
-                            })
-                        
-                        messagebox.showinfo('Scans Uploaded', 'Scans have been uploaded successfully.')
-                        self.save_scan_set_to_json(scan_folder_name, scan_data)
-                        self.upload_scan_window.destroy()
-                    except OSError as e:
-                        messagebox.showerror('Error', f'Error creating folder')
-                    
-        else:
-            messagebox.showerror('Error', 'Enter a folder name.')
+                scan_data.append({
+                    'scan_id': scan_id,
+                    'coordinates': [],
+                    'lesion_information': []
+                })
+            
+            messagebox.showinfo('Scans Uploaded', 'Scans have been uploaded successfully.')
+            self.save_scan_set_to_json(scan_folder_name, scan_data)
+            self.upload_scan_window.destroy()
+        except OSError as e:
+            messagebox.showerror('Error', f'Error creating folder: {e}')
+            shutil.rmtree(new_folder_path)
 
     def dicom_to_png(self, Path):
         DCM_Img = PDCM.read_file(Path)

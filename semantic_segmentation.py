@@ -1,6 +1,6 @@
 # semantic_segmentation.py
 
-from segment_anything import SamPredictor, sam_model_registry
+from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 import cv2
 from PIL import Image, ImageTk
 import numpy as np
@@ -10,54 +10,65 @@ class SemanticSegmentation:
     def __init__(self, model_type="vit_h", checkpoint_path="segment_anything_checkpoints/sam_vit_h_4b8939.pth"):
         # Load the model
         self.sam = sam_model_registry[model_type](checkpoint=checkpoint_path)
-        self.predictor = SamPredictor(self.sam)
+        self.sam.to(device="cpu")  # Assuming that CPU is the intended device
+        self.mask_generator = SamAutomaticMaskGenerator(self.sam)
+
+    def create_mask_image(self, anns, original_image):
+        if len(anns) == 0:
+            return None, None
+        sorted_anns = sorted(anns, key=(lambda x: x['area']), reverse=True)
+
+        mask_img = np.zeros_like(original_image)
+        overlay_img = original_image.copy()
+
+        for ann in sorted_anns:
+            m = ann['segmentation']
+            color_mask = np.random.randint(0, 255, (3,), dtype=np.uint8)
+            full_color_mask = np.zeros_like(original_image)
+            full_color_mask[m] = color_mask
+            blended = cv2.addWeighted(overlay_img, 0.65, full_color_mask, 0.35, 0)
+            overlay_img[m] = blended[m]
+            mask_img[m] = color_mask
+
+        return Image.fromarray(overlay_img), Image.fromarray(mask_img)
 
     def segment_scan(self, image_path):
         # Load the image
         image = cv2.imread(image_path)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         # Verify the image was loaded
         if image is None:
             print("Failed to load image.")
             return
 
-        # Set the image in the predictor
-        self.predictor.set_image(image)
-
         # Generate masks for the entire image
-        masks, _, _ = self.predictor.predict(None)  # Using None for automatic mask generation
+        masks = self.mask_generator.generate(image)
 
         # Create a Tkinter window
         window = tk.Toplevel()
         window.title("Semantic Segmentation")
-        window.configure(bg='#cccccc')
 
-        # Display the original image with label
-        original_img_label = tk.Label(window, text="Original Scan", font=("Calibri", 14), foreground='black', background='#cccccc')
-        original_img_label.grid(row=0, column=0)
+        # Generate both overlay and mask images using the provided masks
+        overlay_image_pil, mask_image_pil = self.create_mask_image(masks, image)
 
-        original_img = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        original_photo = ImageTk.PhotoImage(original_img)
-        original_label = tk.Label(window, image=original_photo, bg='#cccccc')
-        original_label.image = original_photo  # Keep a reference!
-        original_label.grid(row=1, column=0)
+        # If the overlay image was created successfully, pack it on the left frame
+        if overlay_image_pil:
+            overlay_image_tk = ImageTk.PhotoImage(image=overlay_image_pil)
+            overlay_label = tk.Label(window, image=overlay_image_tk)
+            overlay_label.image = overlay_image_tk
+            overlay_label.pack(side="left")
 
-        # Display the combined mask with label
-        combined_label_text = tk.Label(window, text="Segmented Scan", font=("Calibri", 14), foreground='black', background='#cccccc')
-        combined_label_text.grid(row=0, column=1)
-
-        combined_mask = np.sum(masks, axis=0)  # Sum all the masks to combine them
-        combined_pil_img = Image.fromarray((combined_mask * 255 / len(masks)).astype(np.uint8))
-        combined_photo = ImageTk.PhotoImage(combined_pil_img)
-        combined_label = tk.Label(window, image=combined_photo, bg='#cccccc')
-        combined_label.image = combined_photo  # Keep a reference!
-        combined_label.grid(row=1, column=1)
+        # If the mask image was created successfully, pack it on the right frame
+        if mask_image_pil:
+            mask_image_tk = ImageTk.PhotoImage(image=mask_image_pil)
+            mask_label = tk.Label(window, image=mask_image_tk)
+            mask_label.image = mask_image_tk
+            mask_label.pack(side="right")
 
         # Start the Tkinter event loop
         window.mainloop()
 
-# If you want to run this script directly, you can use the following lines
 # if __name__ == "__main__":
 #     segmenter = SemanticSegmentation()
-#     scan_path = 'saved_scans/set2/0001.png'  # Replace with your actual image file name
-#     segmenter.segment_scan(scan_path)
+#     segmenter.segment_scan('saved_scans/we/0000.png')

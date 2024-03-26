@@ -142,7 +142,7 @@ class MRIAnnotationTool:
             'dynamic_contrast_enhanced_imaging_combobox', 'pirads_score_separator', 
             'pirads_scores_label', 'pirad_score_combobox', 'additional_comments_separator', 
             'additional_comments_label', 'additional_comments_textbox', 'toggle_lesion_button', 
-            'pen_setting_button']
+            'pen_setting_button', 'end_separator', 'semantic_segmentation_button']
 
         for attr in attributes_to_clear:
             if hasattr(self, attr):
@@ -174,8 +174,13 @@ class MRIAnnotationTool:
                 del self.no_scans_label
 
             scan_arr = mpimg.imread(self.current_scan)
-            # Get the actual size of the image
-            actual_height, actual_width = scan_arr.shape
+
+            # Determine if the image is grayscale or colour
+            # Grayscale images will have 2 dimensions, colour images will have 3
+            if len(scan_arr.shape) == 2:  # Grayscale image
+                actual_height, actual_width = scan_arr.shape
+            elif len(scan_arr.shape) <= 3:  # Color image
+                actual_height, actual_width, _ = scan_arr.shape 
 
             # Create a figure and subplot for displaying scans
             self.f = Figure(figsize=(actual_width / 100, actual_height / 100), dpi=120)
@@ -863,7 +868,6 @@ class MRIAnnotationTool:
     
     def segment_scan(self, scan_path):
         # Create an instance of the SemanticSegmentation class
-        print(scan_path)
         segmenter = SemanticSegmentation()
         # Call the segment_scan method with the path to your scan
         segmenter.segment_scan(scan_path)
