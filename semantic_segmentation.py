@@ -1,5 +1,3 @@
-# semantic_segmentation.py
-
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 import cv2
 from PIL import Image, ImageTk

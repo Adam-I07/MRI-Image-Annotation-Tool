@@ -131,9 +131,9 @@ class MRIAnnotationTool:
             'annotation_tool_label', 'drawing_button', 'colour_button', 
             'undo_button', 'choose_pen_size_label', 'choose_pen_size_scale', 
             'saving_separator', 'saving_label', 'save_annotations_button', 'viewing_separator', 'tool_separator'
-            'lesion_separator', 'select_lesion_label', 'select_lesion_combobox', 
+            'lesion_separator', 'select_lesion_label', 'select_lesion_combobox', 'viewing_title_seperator', 
             'load_lesion_button', 't2w_separator', 't2_weighted_imaging_label', 
-            't2w_peripheral_zone_label', 't2w_peripheral_zone_combobox', 
+            't2w_peripheral_zone_label', 't2w_peripheral_zone_combobox', 'save_button_separator',
             't2w_transition_zone_label', 't2w_transition_zone_combobox', 
             'dwi_top_separator', 'diffusion_weighted_imaging_label', 
             'diffusion_weighted_peripheral_zone_label', 'diffusion_weighted_peripheral_zone_combobox', 
@@ -142,7 +142,7 @@ class MRIAnnotationTool:
             'dynamic_contrast_enhanced_imaging_combobox', 'pirads_score_separator', 
             'pirads_scores_label', 'pirad_score_combobox', 'additional_comments_separator', 
             'additional_comments_label', 'additional_comments_textbox', 'toggle_lesion_button', 
-            'pen_setting_button', 'end_separator', 'semantic_segmentation_button']
+            'pen_setting_button', 'end_separator', 'semantic_segmentation_button', 'tool_title_seperator']
 
         for attr in attributes_to_clear:
             if hasattr(self, attr):
@@ -413,21 +413,17 @@ class MRIAnnotationTool:
     def activate_zoom(self, deactivate=False):
         if self.drawing_active:
             self.drawing_active = False
-
         if self.undo_active:
             self.undo_active = False
             # Disconnect the delete_selected_line method from the mouse click event
             if hasattr(self, 'undo_callback_id') and self.undo_callback_id:
                 self.canvas.mpl_disconnect(self.undo_callback_id)
                 self.undo_callback_id = None
-
         # Toggle the zoom_active state
         self.zoom_active = not deactivate
-
         # Check the zoom activation state and update the button and label accordingly
         if self.zoom_active:
             self.active_button = self.zoom_button
-
         # Trigger the "Zoom to Rectangle" functionality directly
         self.toolbar.zoom()
 
