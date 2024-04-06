@@ -179,7 +179,7 @@ class MRIAnnotationTool:
             # Grayscale images will have 2 dimensions, colour images will have 3
             if len(scan_arr.shape) == 2:  # Grayscale image
                 actual_height, actual_width = scan_arr.shape
-            elif len(scan_arr.shape) <= 3:  # Color image
+            elif len(scan_arr.shape) <= 3:  # Colour image
                 actual_height, actual_width, _ = scan_arr.shape 
 
             # Create a figure and subplot for displaying scans
@@ -201,12 +201,6 @@ class MRIAnnotationTool:
 
             # Set canvas width and height
             self.canvas_width, self.canvas_height = self.f.get_size_inches() * self.f.dpi
-
-            # Bind mouse button press, release, and motion events for drawing
-            self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
-            self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
-            self.canvas.mpl_connect('motion_notify_event', self.draw_on_canvas)
-            self.canvas.mpl_connect('motion_notify_event', self.on_mouse_motion)
 
             # Draw canvas
             self.canvas.draw()
@@ -352,6 +346,13 @@ class MRIAnnotationTool:
             self.save_annotations_button = tk.Button(self.pirad_frame, image=self.save_icon_final, command=lambda:self.save_current_opened_lesion_pirads(self.current_opened_lesion), borderwidth=0, highlightthickness=0, width=45, height=45)
             self.save_annotations_button.grid(row=30, column=0, padx=(0,0), pady=(5,0))
             self.create_tool_tip(self.save_annotations_button, "Save Annotations")
+
+
+            # Bind mouse button press, release, and motion events for drawing
+            self.canvas.mpl_connect('button_press_event', self.on_mouse_press)
+            self.canvas.mpl_connect('button_release_event', self.on_mouse_release)
+            self.canvas.mpl_connect('motion_notify_event', self.on_mouse_motion)
+            self.canvas.mpl_connect('motion_notify_event', self.draw_on_canvas)
             
             # Create a new toolbar instance
             self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
@@ -375,6 +376,7 @@ class MRIAnnotationTool:
         self.a.imshow(scan_arr, cmap='gray', aspect='equal')
         self.a.axis('off')
         self.a.set_aspect('auto') 
+        self.canvas.draw()
 
         # Load annotations for the initial scan
         json_file_path = os.path.join("saved_scans", f"{self.current_opened_scan}", f"{self.current_opened_scan}_annotation_information.json")
@@ -444,6 +446,19 @@ class MRIAnnotationTool:
             # Disconnect the delete_selected_line method from the mouse click event
             if hasattr(self, 'undo_callback_id') and self.undo_callback_id:
                 self.canvas.mpl_disconnect(self.undo_callback_id)
+    
+    def on_mouse_motion(self, event):
+        # Check if the event is a motion event
+        if event.name == 'motion_notify_event':
+            if event.xdata is not None and event.ydata is not None:
+                # Get the x and y coordinates of the mouse pointer
+                x, y = int(event.xdata), int(event.ydata)
+            else:
+                # Set coordinates to (0, 0) when outside the image
+                x, y = 0, 0
+
+            # Update the coordinates label
+            self.coordinates_label.config(text=f"Coordinates: ({x}, {y})")
 
 
     def activate_drawing(self):
@@ -462,6 +477,8 @@ class MRIAnnotationTool:
         # Update the button appearance based on the activation state
         if self.drawing_active:
             self.active_button = self.drawing_button
+            self.prev_x = None
+            self.prev_y = None
             self.drawing = True
         else:
             self.active_button = None
@@ -473,18 +490,6 @@ class MRIAnnotationTool:
             if self.current_annotations:
                 self.all_annotations.append(self.current_annotations)
         
-    def on_mouse_motion(self, event):
-        # Check if the event is a motion event
-        if event.name == 'motion_notify_event':
-            if event.xdata is not None and event.ydata is not None:
-                # Get the x and y coordinates of the mouse pointer
-                x, y = int(event.xdata), int(event.ydata)
-            else:
-                # Set coordinates to (0, 0) when outside the image
-                x, y = 0, 0
-
-            # Update the coordinates label
-            self.coordinates_label.config(text=f"Coordinates: ({x}, {y})")
 
     def reset_zoom(self, *args):
         # Manually reset the zoom state
