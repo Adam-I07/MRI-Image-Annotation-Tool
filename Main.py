@@ -181,9 +181,21 @@ class MRIAnnotationTool:
                 actual_height, actual_width = scan_arr.shape
             elif len(scan_arr.shape) <= 3:  # Colour image
                 actual_height, actual_width, _ = scan_arr.shape 
+            
+            # Set the maximum size
+            max_size = (600, 600)
+
+            # If either of the image dimensions is greater than max_size, resize it
+            if actual_width > max_size[0] or actual_height > max_size[1]:
+                original_image = Image.open(self.current_scan)
+                original_image.thumbnail(max_size, Image.LANCZOS)
+                actual_height = original_image.height
+                actual_width = original_image.width
+                # Convert the image to a format that can be displayed by Tkinter
+                scan_arr = np.array(original_image)
 
             # Create a figure and subplot for displaying scans
-            self.f = Figure(figsize=(actual_width / 100, actual_height / 100), dpi=120)
+            self.f = Figure(figsize=(actual_width / 100, actual_height / 100), dpi=100)
             self.a = self.f.add_subplot(111)
 
             # Set aspect ratio to 'equal' to display the image in its actual size
@@ -467,9 +479,9 @@ class MRIAnnotationTool:
         
         if self.undo_active:
             self.undo_active = False
-            # Disconnect the delete_selected_line method from the mouse click event
-            if hasattr(self, 'undo_callback_id') and self.undo_callback_id:
-                self.canvas.mpl_disconnect(self.undo_callback_id)
+        # Disconnect the delete_selected_line method from the mouse click event
+        if hasattr(self, 'undo_callback_id') and self.undo_callback_id:
+            self.canvas.mpl_disconnect(self.undo_callback_id)
 
         self.active_button = self.drawing_button
         self.drawing = True

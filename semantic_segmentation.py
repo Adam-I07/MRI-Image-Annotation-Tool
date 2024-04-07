@@ -39,6 +39,20 @@ class SemanticSegmentation:
         if image is None:
             print("Failed to load image.")
             return
+        
+        # Resize the image if necessary
+        original_height, original_width = image.shape[:2]
+        max_size = 600
+        if max(original_height, original_width) > max_size:
+            # Calculate the scale to resize the image
+            scale = max_size / max(original_height, original_width)
+            new_width = int(original_width * scale)
+            new_height = int(original_height * scale)
+            # Resize the image to new dimensions while maintaining the aspect ratio
+            image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+        # Generate masks for the entire image
+        masks = self.mask_generator.generate(image)
 
         # Generate masks for the entire image
         masks = self.mask_generator.generate(image)
