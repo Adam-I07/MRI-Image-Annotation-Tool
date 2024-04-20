@@ -14,21 +14,45 @@ class SemanticSegmentation:
     def create_mask_image(self, anns, original_image):
         if len(anns) == 0:
             return None, None
+            
         sorted_anns = sorted(anns, key=(lambda x: x['area']), reverse=True)
 
         mask_img = np.zeros_like(original_image)
         overlay_img = original_image.copy()
+        number_img = np.zeros_like(original_image, np.uint8)  # Image to hold the numbers
 
-        for ann in sorted_anns:
+        label_colors = []  # List to hold the colors for each label
+        for idx, ann in enumerate(sorted_anns, start=1):
             m = ann['segmentation']
-            color_mask = np.random.randint(0, 255, (3,), dtype=np.uint8)
+            if len(label_colors) < idx:  # Generate new colors if necessary
+                color_mask = np.random.randint(0, 255, (3,), dtype=np.uint8)
+                label_colors.append(color_mask)
+            else:  # Use existing color for this label
+                color_mask = label_colors[idx - 1]
+
             full_color_mask = np.zeros_like(original_image)
             full_color_mask[m] = color_mask
             blended = cv2.addWeighted(overlay_img, 0.65, full_color_mask, 0.35, 0)
             overlay_img[m] = blended[m]
             mask_img[m] = color_mask
 
-        return Image.fromarray(overlay_img), Image.fromarray(mask_img)
+            # Add numbers to lesions
+            contours, _ = cv2.findContours(m.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            # Find the center of the lesion to place the number
+            moments = cv2.moments(contours[0])
+            if moments['m00'] != 0:
+                cx = int(moments['m10'] / moments['m00'])
+                cy = int(moments['m01'] / moments['m00'])
+                # Draw the numbers on the overlay and number images
+                cv2.putText(overlay_img, str(idx), (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+                cv2.putText(number_img, str(idx), (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+        # Add the numbers image to the mask image
+        mask_img_with_numbers = cv2.addWeighted(mask_img, 1, number_img, 1, 0)
+
+        return Image.fromarray(overlay_img), Image.fromarray(mask_img_with_numbers), label_colors
+
+
 
     def segment_scan(self, image_path):
         # Load the image
@@ -62,7 +86,7 @@ class SemanticSegmentation:
         window.title("Semantic Segmentation")
 
         # Generate both overlay and mask images using the provided masks
-        overlay_image_pil, mask_image_pil = self.create_mask_image(masks, image)
+        overlay_image_pil, mask_image_pil, label_colors = self.create_mask_image(masks, image)
 
         # If the overlay image was created successfully, pack it on the left frame
         if overlay_image_pil:
@@ -83,4 +107,4 @@ class SemanticSegmentation:
 
 # if __name__ == "__main__":
 #     segmenter = SemanticSegmentation()
-#     segmenter.segment_scan('saved_scans/we/0000.png')
+#     segmenter.segment_scan('saved_scans/test/0001.png')

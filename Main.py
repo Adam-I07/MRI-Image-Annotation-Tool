@@ -18,6 +18,7 @@ import penSetting
 from PIL import Image, ImageTk
 import toolTip
 from semantic_segmentation import SemanticSegmentation
+import startScreen 
 
 class MRIAnnotationTool:
     def __init__(self, master):
@@ -48,6 +49,7 @@ class MRIAnnotationTool:
         self.line_width = 2
         self.display_scan_instance =  displayScan.ScanViewer(self)
         self.scans_collective = []
+        self.started_app = 0
 
         # Add canvas width and height attributes
         self.canvas_width = 0
@@ -112,7 +114,21 @@ class MRIAnnotationTool:
         self.pirad_title_label = tk.Label(self.pirad_frame, text="PI-RADS", font=("Calibri", 22), foreground='black', background='#cccccc')
         self.pirad_title_label.grid(row=0, column=0, padx=100)
         self.pirad_frame.grid_propagate(0)
+        
+        if self.started_app == 0:
+            self.start_window_command()
+            self.started_app = self.started_app + 1
 
+    def start_window_command(self):
+        start_program = startScreen.PrecisionScanApp(self)
+        start_program.start_window()
+    
+    def hide_UI(self):
+        self.master.withdraw()
+
+    def show_UI(self):
+        self.master.deiconify()
+        
     def upload_scans(self):
         scan_uploader = uploadScan.scanUploader()
         scan_uploader.upload_scans()
@@ -311,7 +327,7 @@ class MRIAnnotationTool:
             self.t2w_separator = ttk.Separator(self.pirad_frame, orient="horizontal")
             self.t2w_separator.grid(row=3, column=0,columnspan=4, ipadx=120, pady=(0,0))  
             self.t2w_and_dwi_values = ["1", "2", "3", "4", "5"]
-            self.t2_weighted_imaging_label = tk.Label(self.pirad_frame, text="T2 Weighted Imgaing (T2W):", font=("Calibri", 13), foreground='black', background='#cccccc')        
+            self.t2_weighted_imaging_label = tk.Label(self.pirad_frame, text="T2 Weighted Imaging (T2W):", font=("Calibri", 13), foreground='black', background='#cccccc')        
             self.t2_weighted_imaging_label.grid(row=4, column=0, padx=(0, 75), pady=(10, 0))
             self.t2w_peripheral_zone_label = tk.Label(self.pirad_frame, text="T2W Peripheral Zone:", font=("Calibri", 12), foreground='black', background='#cccccc')  
             self.t2w_peripheral_zone_label.grid(row=5, column=0, padx=(0, 100), pady=(0, 0))
@@ -726,13 +742,17 @@ class MRIAnnotationTool:
             return
     
     def save_current_opened_lesion_pirads(self, current_lesion):
+        # Check if a lesion is currently selected
         if current_lesion:
-            selected_lesion_index = next((index for index, lesion in enumerate(self.all_lesions_information) if lesion["lesion-id"] == current_lesion), None)
+            # Locate the index of the selected lesion based on its ID within all lesions information
+            selected_lesion_index = next((index for index, lesion in enumerate(self.all_lesions_information) if lesion["lesion-id"] == current_lesion), None) 
+            # Proceed if the lesion index was foun
             if selected_lesion_index is not None:
+                # Check if any of the required combobox fields are empty and show an error if so
                 if (self.t2w_peripheral_zone_combobox.get() == " " or self.t2w_transition_zone_combobox.get() == " " or self.diffusion_weighted_peripheral_zone_combobox.get() == " " or self.diffusion_weighted_transition_zone_combobox.get() == " " or self.dynamic_contrast_enhanced_imaging_combobox.get() == " " or self.pirad_score_combobox.get() == " "):
                     messagebox.showerror('Error', "Make sure all fields of PI-RADS form are filled")
                 else:
-                    # Update the selected lesion with the modified information
+                    # Update the lesion information with values from the comboboxes and text input
                     self.all_lesions_information[selected_lesion_index]["T2W Peripheral Zone"] = self.t2w_peripheral_zone_combobox.get()
                     self.all_lesions_information[selected_lesion_index]["T2W Transition Zone"] = self.t2w_transition_zone_combobox.get()
                     self.all_lesions_information[selected_lesion_index]["DWI Peripheral Zone"] = self.diffusion_weighted_peripheral_zone_combobox.get()
@@ -741,11 +761,11 @@ class MRIAnnotationTool:
                     self.all_lesions_information[selected_lesion_index]["PI-RADS Score"] = self.pirad_score_combobox.get()
                     additional_comments_text = self.additional_comments_textbox.get(1.0, tk.END).strip()
                     self.all_lesions_information[selected_lesion_index]["Additional Comments"] = additional_comments_text
-
-                    # Save the modified information back to the JSON file or your data storage mechanism
+                    # Call functions to save updated annotations and PI-RADS information
                     self.save_annotations()
                     self.save_pirads_information()
         else:
+            # If no lesion is selected, save annotations and PI-RADS information using default mechanisms
             self.save_annotations()
             self.save_pirads_information()
 
@@ -765,9 +785,11 @@ class MRIAnnotationTool:
         # Save the updated data back to the JSON file
         with open(json_file_path, 'w') as json_file:
             json.dump(existing_data, json_file)
+        
+        # If there are new annotations to be added
         if self.all_annotations:
             coordinate_data_to_save = []
-            # Add the new annotations for the current scan_id
+            # Process each sequence of annotations and structure the data
             for sequence in self.all_annotations:
                 sequence_data = []
                 for line in sequence:
@@ -778,7 +800,7 @@ class MRIAnnotationTool:
                     line_data = {'x': xdata_np.tolist(), 'y': ydata_np.tolist(), 'colour': chosen_colour, 'width': chosen_width, 'lesion_number': lesion_number}
                     sequence_data.append(line_data)
                 coordinate_data_to_save.append(sequence_data)
-            # Find the entry with the matching scan_id
+            # Update the JSON data with new annotation data for the scan
             for entry in existing_data:
                 if entry["scan_id"] == scan_to_save:
                     # Update the coordinates field with the new data

@@ -33,7 +33,7 @@ class ScanSetDelete:
         if '.DS_Store' in current_folders:
             current_folders.remove('.DS_Store') 
 
-        delete_scan_window_name_label = tk.Label(self.delete_scan_window, text="Delete Scans", font=("Calibri", 22), foreground='black', background='#cccccc')
+        delete_scan_window_name_label = tk.Label(self.delete_scan_window, text="Delete Scan", font=("Calibri", 22), foreground='black', background='#cccccc')
         delete_scan_window_name_label.grid(row=0, column=0, padx=(50,0), pady=10)
         select_scan_set_label = tk.Label(self.delete_scan_window, text="Select a scan set to delete:", font=("Calibri", 12), foreground='black', background='#cccccc')
         select_scan_set_label.grid(row=1, column=0, padx=(10,0), sticky='w')
