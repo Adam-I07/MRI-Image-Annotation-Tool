@@ -1,5 +1,5 @@
 1. Make sure you have python 3.9 or above installed.
-2. Install the following libararies:
+2. Install the following libararies. Pillow, OpenCV, Numpy, Matplotlib, Pydicom, segment_anything. The following are the commands to do this:  
     pip install opencv-python-headless Pillow numpy matplotlib pydicom
     pip install git+https://github.com/facebookresearch/segment-anything.git
 3. Go to the following website: https://github.com/facebookresearch/segment-anything#model-checkpoints and download the "ViT-H SAM model" and once downloaded place the model in the segemnt_anything_checkpoints folder. Make sure the path model is named: "sam_vit_h_4b8939.pth".
