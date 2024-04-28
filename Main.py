@@ -23,7 +23,7 @@ import startScreen
 class MRIAnnotationTool:
     def __init__(self, master):
         self.master = master
-        self.master.geometry("1100x700")
+        self.master.geometry("1100x780")
         self.master.title("PrecisionScan")
         self.master.resizable(0, 0)
         self.master.configure(bg='#cccccc')
